@@ -174,26 +174,22 @@ const cy = cytoscape({
       style: { "line-color": "#84d9a8", "target-arrow-color": "#84d9a8" },
     },
   ],
-  layout: { name: "preset" },
+  layout: { name: "grid" },
 });
 
-/* Defer layout until after the container has measured dimensions —
-   fcose against a 0-size box yields a diagonal stack. */
+/* Run the real layout after mount — same path as the Relayout button.
+   Running it inside the cytoscape init fires before the CSS grid has
+   measured #cy, so fcose computes against a 0-size box. */
 cy.nodes().style("opacity", 0);
 cy.edges().style("opacity", 0);
 
-function runInitialLayout() {
+window.addEventListener("load", () => {
   cy.resize();
-  const layout = cy.layout(layoutConfig());
-  layout.one("layoutstop", () => {
-    cy.fit(undefined, 50);
-    cy.nodes().animate({ style: { opacity: 1 } }, { duration: 400, easing: "ease-out" });
-    cy.edges().animate({ style: { opacity: 0.55 } }, { duration: 400, easing: "ease-out", delay: 150 });
-  });
-  layout.run();
-}
-
-requestAnimationFrame(() => requestAnimationFrame(runInitialLayout));
+  cy.layout(layoutConfig()).run();
+  cy.fit(undefined, 50);
+  cy.nodes().animate({ style: { opacity: 1 } }, { duration: 400, easing: "ease-out" });
+  cy.edges().animate({ style: { opacity: 0.55 } }, { duration: 400, easing: "ease-out", delay: 150 });
+});
 
 function layoutConfig() {
   if (window.cytoscapeFcose) {
