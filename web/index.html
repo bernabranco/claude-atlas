@@ -5,93 +5,286 @@
     <title>claude-atlas</title>
     <meta name="viewport" content="width=device-width,initial-scale=1" />
     <script src="https://unpkg.com/cytoscape@3.30.2/dist/cytoscape.min.js"></script>
+    <script src="https://unpkg.com/layout-base@2.0.1/layout-base.js"></script>
+    <script src="https://unpkg.com/cose-base@2.2.0/cose-base.js"></script>
+    <script src="https://unpkg.com/cytoscape-fcose@2.2.0/cytoscape-fcose.js"></script>
+    <link rel="preconnect" href="https://rsms.me/">
+    <link rel="stylesheet" href="https://rsms.me/inter/inter.css">
     <style>
       :root {
-        --bg: #0b0e13;
-        --panel: #141821;
-        --border: #2a3040;
-        --text: #e5e7eb;
-        --muted: #8a93a4;
-        --accent: #6ea8fe;
-        --agent: #6ea8fe;
-        --command: #f7b267;
-        --tool: #9eddba;
-        --mcp: #c084fc;
-        --error: #ef4444;
-        --warning: #eab308;
+        --bg:       #0b0d12;
+        --bg-2:     #0f1218;
+        --panel:    #13171f;
+        --panel-2:  #1a1f2b;
+        --border:   #232937;
+        --border-2: #2d3548;
+        --text:     #e6e8ed;
+        --text-2:   #a8afbe;
+        --muted:    #6b7487;
+        --accent:   #7aa7ff;
+
+        --agent:   #7aa7ff;
+        --command: #f4a261;
+        --tool:    #84d9a8;
+        --mcp:     #c08cf8;
+
+        --invokes: #7aa7ff;
+        --grant:   #84d9a8;
+
+        --error:   #f87171;
+        --warning: #facc15;
+        --info:    #9aa5b7;
+
+        --radius:  6px;
+        --radius-lg: 10px;
       }
       * { box-sizing: border-box; }
       html, body {
-        margin: 0;
-        height: 100%;
+        margin: 0; height: 100%;
         background: var(--bg);
         color: var(--text);
-        font: 14px/1.4 system-ui, -apple-system, sans-serif;
+        font: 13.5px/1.5 "Inter", system-ui, -apple-system, sans-serif;
+        font-feature-settings: "cv11", "ss03";
+        -webkit-font-smoothing: antialiased;
       }
-      #layout { display: grid; grid-template-columns: 1fr 360px; height: 100vh; }
-      #cy { background: var(--bg); }
-      #side {
-        background: var(--panel);
-        border-left: 1px solid var(--border);
-        overflow-y: auto;
-        padding: 16px 20px;
+      button, input { font: inherit; color: inherit; }
+
+      #layout {
+        display: grid;
+        grid-template-columns: 1fr 380px;
+        grid-template-rows: 48px 1fr;
+        grid-template-areas: "top top" "cy side";
+        height: 100vh;
       }
-      header {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        padding: 10px 16px;
+
+      /* ===== Top bar ===== */
+      #top {
+        grid-area: top;
+        display: flex; align-items: center; gap: 16px;
+        padding: 0 16px;
         background: var(--panel);
         border-bottom: 1px solid var(--border);
       }
-      header h1 { font-size: 14px; margin: 0; font-weight: 600; }
-      header .counts { color: var(--muted); font-size: 12px; }
-      header .legend { display: flex; gap: 12px; font-size: 12px; }
-      header .legend span { display: flex; align-items: center; gap: 6px; }
-      header .legend i {
-        width: 10px; height: 10px; border-radius: 50%; display: inline-block;
+      #top h1 {
+        margin: 0;
+        font-size: 13px;
+        font-weight: 600;
+        letter-spacing: -0.01em;
       }
-      #side h2 { font-size: 13px; color: var(--muted); font-weight: 500; margin: 16px 0 6px; text-transform: uppercase; letter-spacing: 0.04em; }
-      #side h2:first-child { margin-top: 0; }
-      #side .title { font-size: 18px; font-weight: 600; margin: 0 0 4px; word-break: break-word; }
-      #side .sub { color: var(--muted); font-size: 12px; margin-bottom: 12px; }
-      #side .tag {
-        display: inline-block; padding: 2px 8px; border-radius: 10px;
-        font-size: 11px; border: 1px solid var(--border); margin-right: 4px; margin-bottom: 4px;
+      #top h1 .tag {
+        font-weight: 400;
+        color: var(--text-2);
+        margin-left: 6px;
+        font-size: 12px;
+      }
+      #search {
+        flex: 1; max-width: 360px;
+        background: var(--bg-2);
+        border: 1px solid var(--border);
         color: var(--text);
+        padding: 6px 10px;
+        border-radius: var(--radius);
+        outline: none;
+        transition: border-color 0.12s;
       }
-      #side .desc { white-space: pre-wrap; color: var(--text); }
-      #side .list { margin: 0; padding: 0; list-style: none; }
-      #side .list li { padding: 4px 0; color: var(--text); cursor: pointer; border-bottom: 1px solid var(--border); }
-      #side .list li:hover { color: var(--accent); }
-      #side .empty { color: var(--muted); font-style: italic; font-size: 12px; }
-      .lint-error { color: var(--error); }
-      .lint-warning { color: var(--warning); }
-      .lint-info { color: var(--muted); }
-      .lint-row { padding: 6px 0; border-bottom: 1px solid var(--border); font-size: 12px; }
-      .lint-row .code { font-family: ui-monospace, monospace; font-size: 11px; color: var(--muted); }
+      #search:focus { border-color: var(--border-2); }
+      #search::placeholder { color: var(--muted); }
+
+      .filters { display: flex; gap: 6px; }
+      .chip {
+        display: inline-flex; align-items: center; gap: 6px;
+        padding: 4px 10px;
+        font-size: 11.5px;
+        background: var(--bg-2);
+        border: 1px solid var(--border);
+        border-radius: 999px;
+        color: var(--text-2);
+        cursor: pointer;
+        user-select: none;
+        transition: all 0.12s;
+      }
+      .chip:hover { border-color: var(--border-2); color: var(--text); }
+      .chip.off { opacity: 0.4; }
+      .chip i {
+        width: 8px; height: 8px;
+        border-radius: 50%;
+        display: inline-block;
+      }
+
+      .controls { display: flex; gap: 4px; margin-left: auto; }
+      .icon-btn {
+        background: transparent;
+        border: 1px solid var(--border);
+        color: var(--text-2);
+        padding: 4px 10px;
+        border-radius: var(--radius);
+        cursor: pointer;
+        font-size: 11.5px;
+        transition: all 0.12s;
+      }
+      .icon-btn:hover {
+        border-color: var(--border-2);
+        color: var(--text);
+        background: var(--bg-2);
+      }
+
+      /* ===== Graph canvas ===== */
+      #cy {
+        grid-area: cy;
+        background:
+          radial-gradient(circle at 30% 20%, #141925 0%, var(--bg) 60%);
+      }
+
+      /* ===== Side panel ===== */
+      #side {
+        grid-area: side;
+        background: var(--panel);
+        border-left: 1px solid var(--border);
+        overflow-y: auto;
+        padding: 18px 20px 30px;
+      }
+
+      #side .empty {
+        color: var(--muted);
+        font-size: 12.5px;
+        padding: 40px 0;
+        text-align: center;
+      }
+      #side .empty .kbd {
+        display: inline-block;
+        padding: 1px 6px;
+        background: var(--bg-2);
+        border: 1px solid var(--border);
+        border-radius: 4px;
+        font-family: ui-monospace, monospace;
+        font-size: 11px;
+        color: var(--text-2);
+      }
+
+      #side h2 {
+        font-size: 10.5px;
+        color: var(--muted);
+        font-weight: 600;
+        margin: 18px 0 8px;
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+      }
+      #side h2:first-child { margin-top: 0; }
+
+      .node-head {
+        display: flex; align-items: center; gap: 10px;
+        margin-bottom: 6px;
+      }
+      .node-head .swatch {
+        width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0;
+      }
+      .node-head .title {
+        font-size: 18px;
+        font-weight: 600;
+        letter-spacing: -0.015em;
+        line-height: 1.2;
+        word-break: break-word;
+      }
+      .node-head .type {
+        color: var(--muted);
+        font-size: 11px;
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+      }
+
+      .desc {
+        color: var(--text);
+        font-size: 13px;
+        line-height: 1.55;
+      }
+
+      .card {
+        background: var(--bg-2);
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        padding: 8px 10px;
+        margin-bottom: 6px;
+        cursor: pointer;
+        display: flex; align-items: center; gap: 8px;
+        transition: all 0.12s;
+      }
+      .card:hover {
+        border-color: var(--border-2);
+        background: var(--panel-2);
+      }
+      .card .swatch {
+        width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0;
+      }
+      .card .name { font-size: 13px; }
+      .card .kind { color: var(--muted); font-size: 11px; margin-left: auto; }
+
+      .tag {
+        display: inline-block;
+        padding: 2px 8px;
+        font-size: 11px;
+        background: var(--bg-2);
+        border: 1px solid var(--border);
+        border-radius: 4px;
+        color: var(--text);
+        margin: 0 4px 4px 0;
+        cursor: pointer;
+        transition: all 0.12s;
+      }
+      .tag:hover { border-color: var(--border-2); background: var(--panel-2); }
+
+      .lint-row {
+        padding: 8px 10px;
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        margin-bottom: 6px;
+        font-size: 12px;
+        background: var(--bg-2);
+      }
+      .lint-row .level {
+        font-size: 10px;
+        font-weight: 700;
+        letter-spacing: 0.08em;
+        padding: 1px 6px;
+        border-radius: 3px;
+        margin-right: 6px;
+      }
+      .lint-row .level.error   { background: rgba(248,113,113,0.15); color: var(--error); }
+      .lint-row .level.warning { background: rgba(250,204,21,0.15); color: var(--warning); }
+      .lint-row .level.info    { background: rgba(154,165,183,0.15); color: var(--info); }
+      .lint-row .code {
+        font-family: ui-monospace, "SF Mono", monospace;
+        color: var(--muted);
+        font-size: 11px;
+      }
+      .lint-row .msg { margin-top: 4px; color: var(--text); }
     </style>
   </head>
   <body>
     <div id="layout">
-      <div style="display:flex; flex-direction:column;">
-        <header>
-          <h1>claude-atlas</h1>
-          <div class="legend">
-            <span><i style="background:var(--agent)"></i>agent</span>
-            <span><i style="background:var(--command)"></i>command</span>
-            <span><i style="background:var(--tool)"></i>tool</span>
-            <span><i style="background:var(--mcp)"></i>mcp</span>
-          </div>
-          <div class="counts" id="counts">loading…</div>
-        </header>
-        <div id="cy" style="flex:1;"></div>
+      <div id="top">
+        <h1>claude-atlas <span class="tag" id="counts">loading…</span></h1>
+        <input id="search" placeholder="Search nodes…" />
+        <div class="filters" id="filters">
+          <span class="chip" data-type="agent"><i style="background:var(--agent)"></i>agents</span>
+          <span class="chip" data-type="command"><i style="background:var(--command)"></i>commands</span>
+          <span class="chip" data-type="tool"><i style="background:var(--tool)"></i>tools</span>
+          <span class="chip" data-type="mcp"><i style="background:var(--mcp)"></i>mcp</span>
+        </div>
+        <div class="controls">
+          <button class="icon-btn" id="btn-fit">Fit</button>
+          <button class="icon-btn" id="btn-relayout">Relayout</button>
+        </div>
       </div>
-      <div id="side">
-        <div class="sub">Click a node for details.</div>
-        <h2>Lint</h2>
-        <div id="lint" class="empty">loading…</div>
-      </div>
+      <div id="cy"></div>
+      <aside id="side">
+        <div class="empty" id="empty-state">
+          Click a node to see details.<br>
+          Press <span class="kbd">/</span> to focus search, <span class="kbd">Esc</span> to clear.
+        </div>
+        <div id="details" style="display:none;"></div>
+        <h2 id="lint-heading" style="display:none;">Lint</h2>
+        <div id="lint"></div>
+      </aside>
     </div>
     <script type="module" src="/app.js"></script>
   </body>
