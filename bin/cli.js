@@ -87,25 +87,57 @@ async function cmdLint(argv) {
   process.exit(byLevel.error.length > 0 ? 1 : 0);
 }
 
+async function cmdDuplicates(argv) {
+  const flags = parseFlags(argv);
+  const target = flags.claudeDir || flags.positional[0] || ".claude";
+  const graph = await scanClaudeDir(target);
+  const findings = lint(graph)
+    .filter((f) => f.code === "duplicate-candidate")
+    .sort((a, b) => (b.score || 0) - (a.score || 0));
+
+  if (flags.json) {
+    console.log(JSON.stringify(findings, null, 2));
+    return;
+  }
+
+  if (!findings.length) {
+    console.log("✓ No duplicate candidates found.");
+    return;
+  }
+
+  console.log(`${findings.length} duplicate candidate(s):\n`);
+  for (const f of findings) {
+    console.log(`  ${f.message}`);
+  }
+}
+
 function usage() {
   console.log(`claude-atlas — map and lint your .claude/ directory
 
 Usage:
-  claude-atlas scan [path]     Scan .claude/ and print a summary
-  claude-atlas scan [path] --json
-                               Emit the graph as JSON (for scripts / UI)
-  claude-atlas lint [path]     Lint the graph for issues
-  claude-atlas lint [path] --json
-                               Emit findings as JSON (exit 1 on errors)
-  claude-atlas serve [path]    Start the interactive graph viewer
+  claude-atlas scan [path]         Scan and print a summary
+  claude-atlas scan [path] --json  Emit the full graph as JSON
+
+  claude-atlas lint [path]         Lint the graph for issues
+  claude-atlas lint [path] --json  Emit findings as JSON (exit 1 on errors)
+
+  claude-atlas duplicates [path]   Show only duplicate-candidate findings,
+                                   ranked by similarity score
+
+  claude-atlas serve [path]        Start the interactive graph viewer
   claude-atlas serve [path] --port 4000
-                               Choose the HTTP port (default 4000)
+                                   Choose the HTTP port (default 4000)
 
 Defaults to ./.claude if no path is given.
 `);
 }
 
-const handler = { scan: cmdScan, lint: cmdLint, serve: cmdServe }[command];
+const handler = {
+  scan: cmdScan,
+  lint: cmdLint,
+  duplicates: cmdDuplicates,
+  serve: cmdServe,
+}[command];
 
 if (!handler) {
   if (command && command !== "--help" && command !== "-h") {

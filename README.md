@@ -65,6 +65,16 @@ Interactive graph at `http://localhost:4000`:
 
 Renders cold in under a second via cytoscape.js.
 
+### `claude-atlas duplicates .claude`
+
+```
+1 duplicate candidate(s):
+
+  Agents "frontend-owner" and "session-owner" look similar (score 0.57). Consider merging.
+```
+
+Shortcut that only surfaces `duplicate-candidate` findings from the linter, sorted by similarity. Similarity is Jaccard on tokenized description + prose, blended 70/30 with tool-grant overlap.
+
 ### `--json` everywhere
 
 ```bash
@@ -117,17 +127,18 @@ Agent→Agent delegation is detected by word-boundary matching on agent names in
 | `missing-agent-ref` | error | Command or agent mentions a name that doesn't exist |
 | `delegation-cycle` | warning | A invokes B invokes A |
 | `unused-tool-grant` | info | Agent has `Write` granted but its prose doesn't mention writing/editing |
+| `duplicate-candidate` | info | Two agents (or two commands) have overlapping prose + tools and may be worth merging |
 
 More on the [roadmap](#roadmap).
 
 ## Roadmap
 
 - [x] **Scanner** — `.claude/` → structured graph (agents, commands, tools, MCP, permissions)
-- [x] **Linter** — dead agents, missing refs, cycles, unused grants
+- [x] **Linter** — dead agents, missing refs, cycles, unused grants, duplicate candidates
 - [x] **Interactive viewer** — cytoscape.js graph with details sidebar, served by Hono
+- [x] **Consolidation hints** — flag near-duplicate agents/commands via token + tool similarity
 - [ ] **Rename-impact** — `claude-atlas rename code-reviewer new-name --dry-run`
 - [ ] **Permission blast-radius** — `claude-atlas who-can "Bash(git push)"`
-- [ ] **Consolidation hints** — flag near-duplicate agents
 - [ ] **Runtime overlay** — parse session transcripts, show which edges actually fire
 - [ ] **Markdown export** — wiki-linked vault of the whole config
 - [ ] **CI mode** — annotate PRs with lint findings
