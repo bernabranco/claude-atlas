@@ -171,6 +171,8 @@ const cy = cytoscape({
       selector: 'edge.hl[kind = "grant"]',
       style: { "line-color": "#84d9a8", "target-arrow-color": "#84d9a8" },
     },
+    /* Initial-mount fade class; removed after layout runs */
+    { selector: ".mounting", style: { opacity: 0 } },
   ],
   layout: { name: "grid" },
 });
@@ -178,20 +180,21 @@ const cy = cytoscape({
 /* Run the real layout after mount — same path as the Relayout button.
    Running it inside the cytoscape init fires before the CSS grid has
    measured #cy, so fcose computes against a 0-size box. */
-cy.nodes().style("opacity", 0);
-cy.edges().style("opacity", 0);
+cy.elements().addClass("mounting");
 
 function mount() {
   cy.resize();
   cy.layout(tieredLayoutConfig()).run();
   cy.fit(undefined, 60);
-  cy.nodes().animate({ style: { opacity: 1 } }, { duration: 400, easing: "ease-out" });
-  cy.edges().animate({ style: { opacity: 0.55 } }, { duration: 400, easing: "ease-out", delay: 150 });
+  /* Let the layout paint, then remove the mounting class so the base
+     stylesheet's opacity (1 for nodes, 0.55 for edges) takes over via
+     the existing opacity transition. */
+  setTimeout(() => cy.elements().removeClass("mounting"), 40);
 
   const loading = document.getElementById("loading");
   if (loading) {
     loading.classList.add("hide");
-    setTimeout(() => loading.remove(), 400);
+    setTimeout(() => loading.remove(), 750);
   }
 }
 
