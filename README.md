@@ -24,6 +24,12 @@ No LLM calls. No cloud. No telemetry. Just your config, made visible.
 
 > ⚠️ **Status: early, active development.** Public development, MIT-licensed, source you can read. See the [roadmap](#roadmap).
 
+<p align="center">
+  <img src="assets/print1.jpg" alt="claude-atlas viewer: a tiered graph of agents, commands, tools, and MCP servers, with color-coded lint findings pinned to the sidebar" width="100%" />
+  <br />
+  <sub><em>17 agents, 11 commands, 9 tools — Types layout with lint findings color-coded by rule.</em></sub>
+</p>
+
 ## How it looks in practice
 
 Walk-through on a real project with 17 agents + 11 commands.
@@ -62,6 +68,12 @@ Interactive graph at `http://localhost:4000`:
 - Edges colored by kind: `invokes` (solid blue), `grant` (dashed green).
 - Click a node → sidebar with description, tools granted, agents it invokes, agents that invoke it.
 - Full lint report pinned to the sidebar.
+
+<p align="center">
+  <img src="assets/print2.jpg" alt="Clicking the Read tool highlights every agent granted access to it, with all other edges faded" width="100%" />
+  <br />
+  <sub><em>Clicking a tool isolates its blast radius — every agent granted <code>Read</code> lights up; everything else fades.</em></sub>
+</p>
 
 Renders cold in under a second via cytoscape.js.
 
