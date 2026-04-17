@@ -112,7 +112,7 @@ const cy = cytoscape({
         "font-weight": 500,
         "text-valign": "bottom",
         "text-margin-y": 6,
-        "text-outline-color": "#0a0c11",
+        "text-outline-color": "#000000",
         "text-outline-width": 3,
         "text-outline-opacity": 1,
         "border-width": 0,
@@ -571,10 +571,17 @@ function renderLintRow(f) {
     warning: "bg-yellow-400/15 text-yellow-300",
     info:    "bg-slate-400/15 text-slate-300",
   }[f.level];
+  const codeBg = {
+    "missing-agent-ref":   "bg-red-400/15 text-red-200 ring-1 ring-red-400/30",
+    "dead-agent":          "bg-amber-400/15 text-amber-200 ring-1 ring-amber-400/30",
+    "delegation-cycle":    "bg-violet-400/15 text-violet-200 ring-1 ring-violet-400/30",
+    "unused-tool-grant":   "bg-sky-400/15 text-sky-200 ring-1 ring-sky-400/30",
+    "duplicate-candidate": "bg-orange-400/15 text-orange-200 ring-1 ring-orange-400/30",
+  }[f.code] || "bg-slate-400/15 text-slate-200 ring-1 ring-slate-400/30";
   return `<div class="px-3 py-2 rounded-md border border-border bg-bg-2 text-[12px]">
     <div class="flex items-center gap-2 mb-1">
       <span class="px-1.5 py-0.5 rounded text-[9.5px] font-bold uppercase tracking-[0.08em] ${levelBg}">${f.level}</span>
-      <span class="font-mono text-[10.5px] text-muted">[${f.code}]</span>
+      <span class="px-1.5 py-0.5 rounded font-mono text-[10.5px] ${codeBg}">${f.code}</span>
     </div>
     <div class="text-fg leading-snug">${escape(f.message)}</div>
   </div>`;
