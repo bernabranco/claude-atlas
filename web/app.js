@@ -120,7 +120,7 @@ const cy = cytoscape({
         height: "data(size)",
         "underlay-color": (n) => nodeColor[n.data("type")] || "#666",
         "underlay-padding": 6,
-        "underlay-opacity": 0.25,
+        "underlay-opacity": 0.12,
         "underlay-shape": "ellipse",
         "transition-property": "opacity, border-width, underlay-opacity, underlay-padding, width, height",
         "transition-duration": "0.18s",
@@ -145,7 +145,7 @@ const cy = cytoscape({
     },
     {
       selector: "node.hl",
-      style: { "underlay-opacity": 0.55, "underlay-padding": 10 },
+      style: { "underlay-opacity": 0.35, "underlay-padding": 10 },
     },
     {
       selector: "node:selected",
@@ -153,7 +153,7 @@ const cy = cytoscape({
         "border-width": 3,
         "border-color": "#ffffff",
         "border-opacity": 1,
-        "underlay-opacity": 0.7,
+        "underlay-opacity": 0.5,
         "underlay-padding": 14,
       },
     },
