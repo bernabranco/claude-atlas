@@ -66,6 +66,26 @@
       #side::-webkit-scrollbar-track { background: transparent; }
       #side::-webkit-scrollbar-thumb { background: #22283a; border-radius: 4px; }
       #side::-webkit-scrollbar-thumb:hover { background: #2e3750; }
+
+      /* Loading overlay */
+      #loading {
+        position: absolute; inset: 0;
+        display: flex; align-items: center; justify-content: center;
+        background: #0a0c11;
+        z-index: 10;
+        transition: opacity 0.35s ease-out;
+      }
+      #loading.hide { opacity: 0; pointer-events: none; }
+      .loading-pulse {
+        width: 8px; height: 8px; border-radius: 50%;
+        background: #7aa7ff;
+        box-shadow: 0 0 14px #7aa7ff;
+        animation: loadingPulse 1.2s ease-in-out infinite;
+      }
+      @keyframes loadingPulse {
+        0%, 100% { opacity: 0.25; transform: scale(0.9); }
+        50%      { opacity: 1;    transform: scale(1.15); }
+      }
     </style>
   </head>
   <body class="h-screen overflow-hidden font-sans">
@@ -104,7 +124,15 @@
         </div>
       </header>
 
-      <div id="cy" style="grid-area:cy;"></div>
+      <div style="grid-area:cy; position:relative;">
+        <div id="cy" style="position:absolute; inset:0;"></div>
+        <div id="loading">
+          <div class="flex items-center gap-3 text-fg-2 text-[12.5px] tracking-wide">
+            <span class="loading-pulse"></span>
+            <span>Analyzing <span class="font-mono text-fg">.claude/</span>…</span>
+          </div>
+        </div>
+      </div>
 
       <aside id="side" class="overflow-y-auto bg-panel border-l border-border px-5 pt-5 pb-10" style="grid-area:side;">
 

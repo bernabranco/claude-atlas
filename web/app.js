@@ -187,6 +187,12 @@ window.addEventListener("load", () => {
   cy.fit(undefined, 60);
   cy.nodes().animate({ style: { opacity: 1 } }, { duration: 400, easing: "ease-out" });
   cy.edges().animate({ style: { opacity: 0.55 } }, { duration: 400, easing: "ease-out", delay: 150 });
+
+  const loading = document.getElementById("loading");
+  if (loading) {
+    loading.classList.add("hide");
+    setTimeout(() => loading.remove(), 400);
+  }
 });
 
 /* Tiered preset: agents / commands / tools / mcp stacked as horizontal rows.
