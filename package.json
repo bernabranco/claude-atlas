@@ -1,6 +1,6 @@
 {
   "name": "claude-atlas",
-  "version": "0.0.1",
+  "version": "0.1.0",
   "description": "Map and lint your .claude/ directory — agents, commands, tools, permissions as a navigable graph",
   "type": "module",
   "bin": {
@@ -25,6 +25,14 @@
   },
   "license": "MIT",
   "author": "Bernardo Branco <bernardoagbranco@gmail.com>",
+  "homepage": "https://github.com/bernabranco/claude-atlas#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/bernabranco/claude-atlas.git"
+  },
+  "bugs": {
+    "url": "https://github.com/bernabranco/claude-atlas/issues"
+  },
   "dependencies": {
     "@hono/node-server": "^1.19.14",
     "hono": "^4.12.14"

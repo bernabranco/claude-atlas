@@ -84,26 +84,25 @@ Both `scan` and `lint` support `--json` for scripting.
 
 Path defaults to `./.claude` in each case.
 
-## Running locally (for now)
+## Install
 
-The published `claude-atlas@0.0.1` is currently a placeholder. Until the real release:
+```bash
+npx claude-atlas serve .claude
+```
+
+Or clone and run locally:
 
 ```bash
 git clone https://github.com/bernabranco/claude-atlas.git
 cd claude-atlas
 npm install
 
-# Try it on your own .claude/ directory
 node bin/cli.js scan /path/to/your/repo/.claude
 node bin/cli.js lint /path/to/your/repo/.claude
 node bin/cli.js serve /path/to/your/repo/.claude
 ```
 
-Once it lands on npm properly:
-
-```bash
-npx claude-atlas serve .claude
-```
+Node 20+.
 
 ## What gets scanned
 
