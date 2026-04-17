@@ -25,9 +25,9 @@ No LLM calls. No cloud. No telemetry. Just your config, made visible.
 > ⚠️ **Status: early, active development.** Public development, MIT-licensed, source you can read. See the [roadmap](#roadmap).
 
 <p align="center">
-  <img src="assets/print1.jpg" alt="claude-atlas viewer: a tiered graph of agents, commands, tools, and MCP servers, with color-coded lint findings pinned to the sidebar" width="100%" />
+  <img src="assets/demo.gif" alt="claude-atlas viewer: tiered graph of agents, commands, tools, and MCP servers — hovering highlights the connections, clicking reveals lint findings in the sidebar" width="100%" />
   <br />
-  <sub><em>17 agents, 11 commands, 9 tools — Types layout with lint findings color-coded by rule.</em></sub>
+  <sub><em>The viewer in motion — hover a node to trace its edges, click to see tools, permissions, and lint findings.</em></sub>
 </p>
 
 ## How it looks in practice
