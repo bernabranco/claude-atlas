@@ -182,7 +182,7 @@ const cy = cytoscape({
    measured #cy, so fcose computes against a 0-size box. */
 cy.elements().addClass("mounting");
 
-let currentMode = "flow";
+let currentMode = "types";
 
 function applyLayout(mode) {
   currentMode = mode;
@@ -198,7 +198,7 @@ function applyLayout(mode) {
 
 function mount() {
   cy.resize();
-  applyLayout("flow");
+  applyLayout("types");
   cy.fit(undefined, 60);
   /* Let the layout paint, then remove the mounting class so the base
      stylesheet's opacity (1 for nodes, 0.55 for edges) takes over via
@@ -221,15 +221,12 @@ if (document.readyState === "complete") {
   window.addEventListener("load", mount);
 }
 
-/* Types preset: agents / commands / tools / mcp as horizontal rows,
-   nodes zigzag within each row so sibling arrows don't stack on the
-   same y-line. */
+/* Types preset: agents / commands / tools / mcp stacked as horizontal rows. */
 function tieredLayoutConfig() {
   const rows = ["agent", "command", "tool", "mcp"];
   const w = cy.width();
   const h = cy.height();
   const rowGap = h / (rows.length + 1);
-  const zigzag = rowGap * 0.38;
   const positions = {};
 
   rows.forEach((type, rowIdx) => {
@@ -240,8 +237,7 @@ function tieredLayoutConfig() {
     const colGap = w / (nodes.length + 1);
     const y = rowGap * (rowIdx + 1);
     nodes.forEach((n, i) => {
-      const offset = (i % 2 === 0 ? -1 : 1) * zigzag;
-      positions[n.id()] = { x: colGap * (i + 1), y: y + offset };
+      positions[n.id()] = { x: colGap * (i + 1), y };
     });
   });
 
@@ -311,19 +307,17 @@ function layoutConfig() {
     return {
       name: "fcose",
       animate: false,
-      quality: "proof",
-      nodeRepulsion: 28000,
-      idealEdgeLength: 180,
-      edgeElasticity: 0.15,
-      nodeSeparation: 120,
-      gravity: 0.15,
-      gravityRange: 3.0,
+      quality: "default",
+      nodeRepulsion: 9000,
+      idealEdgeLength: 115,
+      edgeElasticity: 0.22,
+      gravity: 0.28,
       gravityRangeCompound: 1.5,
-      padding: 60,
+      padding: 50,
       randomize: false,
     };
   }
-  return { name: "cose", animate: false, padding: 60, nodeRepulsion: () => 400000, idealEdgeLength: () => 180 };
+  return { name: "cose", animate: false, padding: 50 };
 }
 
 document.getElementById("btn-fit").addEventListener("click", () => {
