@@ -149,11 +149,11 @@ More on the [roadmap](#roadmap).
 - [x] **Linter** — dead agents, missing refs, cycles, unused grants, duplicate candidates
 - [x] **Interactive viewer** — cytoscape.js graph with details sidebar, served by Hono
 - [x] **Consolidation hints** — flag near-duplicate agents/commands via token + tool similarity
-- [ ] **Rename-impact** — `claude-atlas rename code-reviewer new-name --dry-run`
-- [ ] **Permission blast-radius** — `claude-atlas who-can "Bash(git push)"`
-- [ ] **Runtime overlay** — parse session transcripts, show which edges actually fire
-- [ ] **Markdown export** — wiki-linked vault of the whole config
-- [ ] **CI mode** — annotate PRs with lint findings
+- [ ] **[Rename-impact](https://github.com/bernabranco/claude-atlas/issues/6)** — `claude-atlas rename code-reviewer new-name --dry-run`
+- [ ] **[Permission blast-radius](https://github.com/bernabranco/claude-atlas/issues/7)** — `claude-atlas who-can "Bash(git push)"`
+- [ ] **[Runtime overlay](https://github.com/bernabranco/claude-atlas/issues/8)** — parse session transcripts, show which edges actually fire
+- [ ] **[Markdown export](https://github.com/bernabranco/claude-atlas/issues/9)** — wiki-linked vault of the whole config
+- [ ] **[CI mode](https://github.com/bernabranco/claude-atlas/issues/10)** — annotate PRs with lint findings
 
 ## Contributing
 
