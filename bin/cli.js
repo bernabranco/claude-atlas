@@ -1,20 +1,33 @@
 #!/usr/bin/env node
 import { scanClaudeDir } from "../lib/scanner.js";
 import { lint } from "../lib/linter.js";
+import { startServer } from "../lib/server.js";
 
 const args = process.argv.slice(2);
 const [command, ...rest] = args;
+
+const BOOLEAN_FLAGS = new Set(["json"]);
 
 function parseFlags(argv) {
   const flags = { positional: [] };
   for (let i = 0; i < argv.length; i++) {
     const a = argv[i];
-    if (a === "--json") flags.json = true;
-    else if (a === "--claude-dir") flags.claudeDir = argv[++i];
-    else if (a.startsWith("--")) flags[a.slice(2)] = true;
-    else flags.positional.push(a);
+    if (!a.startsWith("--")) {
+      flags.positional.push(a);
+      continue;
+    }
+    const key = a.slice(2);
+    if (BOOLEAN_FLAGS.has(key)) {
+      flags[key] = true;
+    } else {
+      flags[camelCase(key)] = argv[++i];
+    }
   }
   return flags;
+}
+
+function camelCase(s) {
+  return s.replace(/-([a-z])/g, (_, c) => c.toUpperCase());
 }
 
 async function cmdScan(argv) {
@@ -33,6 +46,13 @@ async function cmdScan(argv) {
   console.log(
     `  ${graph.permissions.allow.length} allow rules, ${graph.permissions.deny.length} deny rules`
   );
+}
+
+async function cmdServe(argv) {
+  const flags = parseFlags(argv);
+  const target = flags.claudeDir || flags.positional[0] || ".claude";
+  const port = flags.port ? Number(flags.port) : 4000;
+  startServer({ claudeDir: target, port });
 }
 
 async function cmdLint(argv) {
@@ -77,12 +97,15 @@ Usage:
   claude-atlas lint [path]     Lint the graph for issues
   claude-atlas lint [path] --json
                                Emit findings as JSON (exit 1 on errors)
+  claude-atlas serve [path]    Start the interactive graph viewer
+  claude-atlas serve [path] --port 4000
+                               Choose the HTTP port (default 4000)
 
 Defaults to ./.claude if no path is given.
 `);
 }
 
-const handler = { scan: cmdScan, lint: cmdLint }[command];
+const handler = { scan: cmdScan, lint: cmdLint, serve: cmdServe }[command];
 
 if (!handler) {
   if (command && command !== "--help" && command !== "-h") {
