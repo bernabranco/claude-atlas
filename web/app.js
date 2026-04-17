@@ -15,42 +15,50 @@ const nodeColor = {
 document.getElementById("counts").textContent =
   `${graph.agents.length} agents · ${graph.commands.length} commands · ${graph.tools.length} tools · ${graph.mcpServers.length} mcp`;
 
+/* ===== Compute degree + lint-by-subject maps ===== */
 const degree = new Map();
-function bump(id) { degree.set(id, (degree.get(id) || 0) + 1); }
-for (const e of graph.edges) { bump(e.from); bump(e.to); }
-
+for (const e of graph.edges) {
+  degree.set(e.from, (degree.get(e.from) || 0) + 1);
+  degree.set(e.to, (degree.get(e.to) || 0) + 1);
+}
 const maxDegree = Math.max(1, ...degree.values());
 function sizeFor(id) {
   const d = degree.get(id) || 0;
-  return 14 + Math.round(26 * (d / maxDegree));
+  return 16 + Math.round(30 * (d / maxDegree));
 }
 
+const lintBySubject = new Map();
+for (const f of findings) {
+  if (!f.subject) continue;
+  const bucket = lintBySubject.get(f.subject) || { error: 0, warning: 0, info: 0 };
+  bucket[f.level] = (bucket[f.level] || 0) + 1;
+  lintBySubject.set(f.subject, bucket);
+}
+function lintLevel(id) {
+  const b = lintBySubject.get(id);
+  if (!b) return null;
+  if (b.error) return "error";
+  if (b.warning) return "warning";
+  if (b.info) return "info";
+  return null;
+}
+
+/* ===== Build elements ===== */
 const elements = [];
+function addNode(id, label, type, payload) {
+  elements.push({
+    data: {
+      id, label, type, payload,
+      size: sizeFor(id),
+      lint: lintLevel(id),
+    },
+  });
+}
 
-for (const a of graph.agents) {
-  const id = `agent:${a.slug}`;
-  elements.push({
-    data: { id, label: a.name, type: "agent", payload: a, size: sizeFor(id) },
-  });
-}
-for (const c of graph.commands) {
-  const id = `command:${c.slug}`;
-  elements.push({
-    data: { id, label: `/${c.slug}`, type: "command", payload: c, size: sizeFor(id) },
-  });
-}
-for (const t of graph.tools) {
-  const id = `tool:${t.slug}`;
-  elements.push({
-    data: { id, label: t.name, type: "tool", payload: t, size: sizeFor(id) },
-  });
-}
-for (const m of graph.mcpServers) {
-  const id = `mcp:${m.slug}`;
-  elements.push({
-    data: { id, label: m.name, type: "mcp", payload: m, size: sizeFor(id) },
-  });
-}
+for (const a of graph.agents)     addNode(`agent:${a.slug}`,   a.name,       "agent",   a);
+for (const c of graph.commands)   addNode(`command:${c.slug}`, `/${c.slug}`, "command", c);
+for (const t of graph.tools)      addNode(`tool:${t.slug}`,    t.name,       "tool",    t);
+for (const m of graph.mcpServers) addNode(`mcp:${m.slug}`,     m.name,       "mcp",     m);
 
 let edgeId = 0;
 for (const e of graph.edges) {
@@ -59,53 +67,79 @@ for (const e of graph.edges) {
   });
 }
 
+/* ===== Cytoscape ===== */
 const cy = cytoscape({
   container: document.getElementById("cy"),
   elements,
   wheelSensitivity: 0.2,
-  minZoom: 0.2,
+  minZoom: 0.15,
   maxZoom: 3,
   style: [
     {
       selector: "node",
       style: {
         "background-color": (n) => nodeColor[n.data("type")] || "#666",
-        "background-opacity": 0.95,
+        "background-opacity": 1,
         label: "data(label)",
         color: "#d6dae4",
-        "font-size": 10.5,
+        "font-size": 11,
         "font-family": "Inter, sans-serif",
         "font-weight": 500,
         "text-valign": "bottom",
-        "text-margin-y": 5,
-        "text-outline-color": "#0b0d12",
+        "text-margin-y": 6,
+        "text-outline-color": "#0a0c11",
         "text-outline-width": 3,
         "text-outline-opacity": 1,
         "border-width": 0,
         width: "data(size)",
         height: "data(size)",
-        "transition-property": "background-color, border-width, opacity",
-        "transition-duration": "0.15s",
+        "shadow-blur": 16,
+        "shadow-color": (n) => nodeColor[n.data("type")] || "#666",
+        "shadow-opacity": 0.35,
+        "shadow-offset-x": 0,
+        "shadow-offset-y": 0,
+        "transition-property": "opacity, border-width, shadow-opacity, width, height",
+        "transition-duration": "0.18s",
       },
+    },
+    /* Lint-affected nodes get a colored ring */
+    {
+      selector: 'node[lint = "error"]',
+      style: { "border-width": 2.5, "border-color": "#f87171", "border-opacity": 0.9 },
+    },
+    {
+      selector: 'node[lint = "warning"]',
+      style: { "border-width": 2.5, "border-color": "#facc15", "border-opacity": 0.9 },
+    },
+    {
+      selector: 'node[lint = "info"]',
+      style: { "border-width": 1.5, "border-color": "#9aa5b7", "border-opacity": 0.6 },
     },
     {
       selector: "node.faded",
-      style: { opacity: 0.15 },
+      style: { opacity: 0.12, "shadow-opacity": 0 },
     },
     {
       selector: "node.hl",
-      style: { "border-width": 2, "border-color": "#ffffff", "border-opacity": 0.9 },
+      style: { "shadow-opacity": 0.75, "shadow-blur": 28 },
     },
     {
       selector: "node:selected",
-      style: { "border-width": 3, "border-color": "#ffffff", "border-opacity": 1 },
+      style: {
+        "border-width": 3,
+        "border-color": "#ffffff",
+        "border-opacity": 1,
+        "shadow-opacity": 0.85,
+        "shadow-blur": 36,
+      },
     },
+    /* Edges */
     {
       selector: "edge",
       style: {
         width: 1,
-        "line-color": "#2d3548",
-        "target-arrow-color": "#2d3548",
+        "line-color": "#2a3048",
+        "target-arrow-color": "#2a3048",
         "target-arrow-shape": "triangle",
         "arrow-scale": 0.9,
         "curve-style": "bezier",
@@ -116,26 +150,41 @@ const cy = cytoscape({
     },
     {
       selector: 'edge[kind = "invokes"]',
-      style: { "line-color": "#7aa7ff", "target-arrow-color": "#7aa7ff" },
+      style: { "line-color": "#5d81c4", "target-arrow-color": "#5d81c4" },
     },
     {
       selector: 'edge[kind = "grant"]',
       style: {
-        "line-color": "#84d9a8",
-        "target-arrow-color": "#84d9a8",
+        "line-color": "#5ea881",
+        "target-arrow-color": "#5ea881",
         "line-style": "dashed",
       },
     },
-    {
-      selector: "edge.faded",
-      style: { opacity: 0.07 },
-    },
+    { selector: "edge.faded", style: { opacity: 0.06 } },
     {
       selector: "edge.hl",
-      style: { opacity: 0.95, width: 2 },
+      style: { opacity: 1, width: 2.2 },
+    },
+    {
+      selector: 'edge.hl[kind = "invokes"]',
+      style: { "line-color": "#7aa7ff", "target-arrow-color": "#7aa7ff" },
+    },
+    {
+      selector: 'edge.hl[kind = "grant"]',
+      style: { "line-color": "#84d9a8", "target-arrow-color": "#84d9a8" },
     },
   ],
   layout: layoutConfig(),
+});
+
+/* Nice load animation — start tiny, grow into place */
+cy.ready(() => {
+  cy.nodes().style("opacity", 0);
+  cy.edges().style("opacity", 0);
+  setTimeout(() => {
+    cy.nodes().animate({ style: { opacity: 1 } }, { duration: 400, easing: "ease-out" });
+    cy.edges().animate({ style: { opacity: 0.55 } }, { duration: 400, easing: "ease-out", delay: 150 });
+  }, 40);
 });
 
 function layoutConfig() {
@@ -144,20 +193,20 @@ function layoutConfig() {
       name: "fcose",
       animate: false,
       quality: "default",
-      nodeRepulsion: 8000,
-      idealEdgeLength: 110,
-      edgeElasticity: 0.25,
-      gravity: 0.3,
+      nodeRepulsion: 9000,
+      idealEdgeLength: 115,
+      edgeElasticity: 0.22,
+      gravity: 0.28,
       gravityRangeCompound: 1.5,
-      padding: 40,
+      padding: 50,
       randomize: false,
     };
   }
-  return { name: "cose", animate: false, padding: 40 };
+  return { name: "cose", animate: false, padding: 50 };
 }
 
 document.getElementById("btn-fit").addEventListener("click", () => {
-  cy.animate({ fit: { padding: 40 } }, { duration: 250 });
+  cy.animate({ fit: { padding: 50 } }, { duration: 280, easing: "ease-out" });
 });
 document.getElementById("btn-relayout").addEventListener("click", () => {
   cy.layout(layoutConfig()).run();
@@ -177,7 +226,7 @@ function clearHighlight() {
   cy.elements().removeClass("faded hl");
 }
 
-/* ===== Filters ===== */
+/* ===== Filter chips ===== */
 const disabled = new Set();
 document.querySelectorAll(".chip[data-type]").forEach((chip) => {
   chip.addEventListener("click", () => {
@@ -190,8 +239,7 @@ document.querySelectorAll(".chip[data-type]").forEach((chip) => {
 function applyFilters() {
   cy.batch(() => {
     cy.nodes().forEach((n) => {
-      const t = n.data("type");
-      n.style("display", disabled.has(t) ? "none" : "element");
+      n.style("display", disabled.has(n.data("type")) ? "none" : "element");
     });
   });
 }
@@ -219,6 +267,7 @@ document.addEventListener("keydown", (e) => {
     searchEl.value = "";
     clearHighlight();
     cy.elements().unselect();
+    showEmpty();
   }
 });
 
@@ -226,76 +275,96 @@ document.addEventListener("keydown", (e) => {
 const side = {
   empty: document.getElementById("empty-state"),
   details: document.getElementById("details"),
-  lintHeading: document.getElementById("lint-heading"),
+  lintSection: document.getElementById("lint-section"),
+  lintCount: document.getElementById("lint-count"),
   lint: document.getElementById("lint"),
 };
 
-side.lint.innerHTML = renderLint(findings);
-if (findings.length) side.lintHeading.style.display = "";
+renderGlobalLint(findings);
 
 cy.on("tap", "node", (e) => showNode(e.target));
-cy.on("tap", (e) => {
-  if (e.target === cy) {
-    side.empty.style.display = "";
-    side.details.style.display = "none";
-  }
-});
+cy.on("tap", (e) => { if (e.target === cy) showEmpty(); });
+
+function showEmpty() {
+  side.empty.classList.remove("hidden");
+  side.details.classList.add("hidden");
+}
 
 function showNode(node) {
-  side.empty.style.display = "none";
-  side.details.style.display = "";
+  side.empty.classList.add("hidden");
+  side.details.classList.remove("hidden");
   const type = node.data("type");
   const payload = node.data("payload");
-  side.details.innerHTML = renderDetails(type, payload);
+  side.details.innerHTML = renderDetails(type, payload, node.data("id"));
+  side.details.classList.remove("fade-in"); void side.details.offsetWidth; side.details.classList.add("fade-in");
   wireClickThroughs(side.details);
 }
 
-function renderDetails(type, payload) {
+function renderDetails(type, payload, id) {
   const parts = [];
-  parts.push(`<div class="node-head">
-    <span class="swatch" style="background:${nodeColor[type]}"></span>
-    <div>
-      <div class="type">${type}</div>
-      <div class="title">${escape(payload.name || payload.slug)}</div>
-    </div>
-  </div>`);
+  const color = nodeColor[type];
+  parts.push(`
+    <div class="flex items-start gap-3 mb-3">
+      <span class="mt-1 w-2.5 h-2.5 rounded-full shrink-0" style="background:${color}; box-shadow: 0 0 10px ${color}80;"></span>
+      <div class="min-w-0">
+        <div class="text-[10px] uppercase tracking-[0.08em] text-muted font-semibold">${type}</div>
+        <div class="text-[18px] font-semibold leading-tight tracking-tight break-words">${escape(payload.name || payload.slug)}</div>
+      </div>
+    </div>`);
 
   if (payload.description) {
-    parts.push(`<div class="desc">${escape(payload.description)}</div>`);
+    parts.push(`<p class="text-[13px] leading-relaxed text-fg">${escape(payload.description)}</p>`);
+  }
+
+  const nodeLint = findings.filter((f) => f.subject === id);
+  if (nodeLint.length) {
+    parts.push(sectionTitle("Issues", nodeLint.length));
+    parts.push(`<div class="space-y-1.5">${nodeLint.map(renderLintRow).join("")}</div>`);
   }
 
   if (type === "agent") {
     if (payload.tools?.length) {
-      parts.push(`<h2>Tools (${payload.tools.length})</h2>`);
-      parts.push(`<div>` + payload.tools
-        .map((t) => `<span class="tag" data-id="tool:${slug(t)}">${escape(t)}</span>`).join("") + `</div>`);
+      parts.push(sectionTitle("Tools", payload.tools.length));
+      parts.push(`<div class="flex flex-wrap gap-1.5">` +
+        payload.tools.map((t) => tagPill(t, `tool:${slug(t)}`)).join("") + `</div>`);
     }
     if (payload.invokes?.length) {
-      parts.push(`<h2>Invokes (${payload.invokes.length})</h2>`);
-      parts.push(payload.invokes.map((s) => cardHTML(`agent:${s}`)).join(""));
+      parts.push(sectionTitle("Invokes", payload.invokes.length));
+      parts.push(`<div class="space-y-1.5">` + payload.invokes.map((s) => cardHTML(`agent:${s}`)).join("") + `</div>`);
     }
     const invokedBy = graph.edges
       .filter((e) => e.to === `agent:${payload.slug}` && e.kind === "invokes")
       .map((e) => e.from);
     if (invokedBy.length) {
-      parts.push(`<h2>Invoked by (${invokedBy.length})</h2>`);
-      parts.push(invokedBy.map(cardHTML).join(""));
+      parts.push(sectionTitle("Invoked by", invokedBy.length));
+      parts.push(`<div class="space-y-1.5">` + invokedBy.map(cardHTML).join("") + `</div>`);
     }
   }
 
   if (type === "tool") {
-    parts.push(`<h2>Granted to (${(payload.agents || []).length})</h2>`);
-    parts.push((payload.agents || []).map((s) => cardHTML(`agent:${s}`)).join(""));
+    parts.push(sectionTitle("Granted to", (payload.agents || []).length));
+    parts.push(`<div class="space-y-1.5">` + (payload.agents || []).map((s) => cardHTML(`agent:${s}`)).join("") + `</div>`);
   }
 
   if (type === "command") {
     if (payload.invokes?.length) {
-      parts.push(`<h2>Invokes (${payload.invokes.length})</h2>`);
-      parts.push(payload.invokes.map((s) => cardHTML(`agent:${s}`)).join(""));
+      parts.push(sectionTitle("Invokes", payload.invokes.length));
+      parts.push(`<div class="space-y-1.5">` + payload.invokes.map((s) => cardHTML(`agent:${s}`)).join("") + `</div>`);
     }
   }
 
   return parts.join("");
+}
+
+function sectionTitle(label, count) {
+  return `<h2 class="flex items-center gap-2 text-[10.5px] uppercase tracking-[0.08em] text-muted font-semibold mt-5 mb-2">
+    <span>${escape(label)}</span>
+    <span class="px-1.5 py-0.5 rounded-full bg-bg-2 border border-border text-fg-2 text-[10px] font-mono normal-case tracking-normal">${count}</span>
+  </h2>`;
+}
+
+function tagPill(label, dataId) {
+  return `<span data-id="${dataId}" class="inline-flex items-center px-2 py-0.5 rounded border border-border bg-bg-2 text-[11.5px] text-fg cursor-pointer hover:border-border-2 hover:bg-panel-2 transition-colors">${escape(label)}</span>`;
 }
 
 function cardHTML(id) {
@@ -303,10 +372,14 @@ function cardHTML(id) {
   if (!node.length) return "";
   const type = node.data("type");
   const label = node.data("label");
-  return `<div class="card" data-id="${id}">
-    <span class="swatch" style="background:${nodeColor[type]}"></span>
-    <span class="name">${escape(label)}</span>
-    <span class="kind">${type}</span>
+  const color = nodeColor[type];
+  const lint = node.data("lint");
+  const ring = lint === "error" ? "ring-1 ring-red-400/50" :
+               lint === "warning" ? "ring-1 ring-yellow-400/50" : "";
+  return `<div data-id="${id}" class="group flex items-center gap-2.5 px-3 py-2 rounded-md border border-border bg-bg-2 hover:bg-panel-2 hover:border-border-2 cursor-pointer transition-colors ${ring}">
+    <span class="w-1.5 h-1.5 rounded-full shrink-0" style="background:${color}; box-shadow: 0 0 6px ${color}A0;"></span>
+    <span class="text-[12.5px] text-fg group-hover:text-fg">${escape(label)}</span>
+    <span class="ml-auto text-[10.5px] uppercase tracking-[0.05em] text-muted">${type}</span>
   </div>`;
 }
 
@@ -317,23 +390,37 @@ function wireClickThroughs(container) {
       if (!target.length) return;
       cy.elements().unselect();
       target.select();
-      cy.animate({ center: { eles: target }, zoom: 1.4 }, { duration: 300 });
+      cy.animate({ center: { eles: target }, zoom: 1.4 }, { duration: 300, easing: "ease-out" });
       showNode(target);
     });
   });
 }
 
-function renderLint(items) {
-  if (!items.length) return `<div class="empty" style="padding:8px 0">✓ no issues</div>`;
-  return items
-    .map(
-      (f) => `<div class="lint-row">
-        <span class="level ${f.level}">${f.level}</span>
-        <span class="code">[${f.code}]</span>
-        <div class="msg">${escape(f.message)}</div>
-      </div>`
-    )
-    .join("");
+function renderGlobalLint(items) {
+  if (!items.length) {
+    side.lintSection.classList.remove("hidden");
+    side.lintCount.textContent = "0";
+    side.lint.innerHTML = `<div class="text-[12px] text-muted py-1">✓ no issues</div>`;
+    return;
+  }
+  side.lintSection.classList.remove("hidden");
+  side.lintCount.textContent = String(items.length);
+  side.lint.innerHTML = items.map(renderLintRow).join("");
+}
+
+function renderLintRow(f) {
+  const levelBg = {
+    error:   "bg-red-400/15 text-red-300",
+    warning: "bg-yellow-400/15 text-yellow-300",
+    info:    "bg-slate-400/15 text-slate-300",
+  }[f.level];
+  return `<div class="px-3 py-2 rounded-md border border-border bg-bg-2 text-[12px]">
+    <div class="flex items-center gap-2 mb-1">
+      <span class="px-1.5 py-0.5 rounded text-[9.5px] font-bold uppercase tracking-[0.08em] ${levelBg}">${f.level}</span>
+      <span class="font-mono text-[10.5px] text-muted">[${f.code}]</span>
+    </div>
+    <div class="text-fg leading-snug">${escape(f.message)}</div>
+  </div>`;
 }
 
 function escape(s) {
