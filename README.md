@@ -2,7 +2,7 @@
 
 # claude-atlas
 
-**Map and lint Claude Code agent configs — wherever they live on disk. Agents, commands, tools, permissions as a navigable graph.**
+**Map and lint Claude Code agent configs — agents, commands, tools, permissions as a navigable graph.**
 
 [![npm version](https://img.shields.io/npm/v/claude-atlas.svg)](https://www.npmjs.com/package/claude-atlas)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
