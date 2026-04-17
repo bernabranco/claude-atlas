@@ -140,7 +140,9 @@ const cy = cytoscape({
         "target-arrow-color": "#2a3048",
         "target-arrow-shape": "triangle",
         "arrow-scale": 0.9,
-        "curve-style": "bezier",
+        "curve-style": "unbundled-bezier",
+        "control-point-distances": [20, -20],
+        "control-point-weights": [0.33, 0.66],
         opacity: 0.55,
         "transition-property": "opacity, line-color, width",
         "transition-duration": "0.15s",
@@ -182,9 +184,20 @@ const cy = cytoscape({
    measured #cy, so fcose computes against a 0-size box. */
 cy.elements().addClass("mounting");
 
+let currentMode = "flow";
+
+function applyLayout(mode) {
+  currentMode = mode;
+  const cfg = mode === "types" ? tieredLayoutConfig() : layoutConfig();
+  cy.layout(cfg).run();
+  document.querySelectorAll(".mode-btn").forEach((b) => {
+    b.classList.toggle("active", b.dataset.mode === mode);
+  });
+}
+
 function mount() {
   cy.resize();
-  cy.layout(tieredLayoutConfig()).run();
+  applyLayout("flow");
   cy.fit(undefined, 60);
   /* Let the layout paint, then remove the mounting class so the base
      stylesheet's opacity (1 for nodes, 0.55 for edges) takes over via
@@ -263,8 +276,8 @@ function layoutConfig() {
 document.getElementById("btn-fit").addEventListener("click", () => {
   cy.animate({ fit: { padding: 50 } }, { duration: 280, easing: "ease-out" });
 });
-document.getElementById("btn-relayout").addEventListener("click", () => {
-  cy.layout(layoutConfig()).run();
+document.querySelectorAll(".mode-btn").forEach((btn) => {
+  btn.addEventListener("click", () => applyLayout(btn.dataset.mode));
 });
 
 /* ===== Hover highlight ===== */

@@ -56,6 +56,7 @@
       }
       .chip.off { opacity: 0.35; }
       .chip.off .swatch-ring { border-color: transparent; }
+      .mode-btn.active { background: #1a2136; color: #e7e9ee; }
       .fade-in { animation: fadeIn 0.25s ease-out both; }
       @keyframes fadeIn {
         from { opacity: 0; transform: translateY(4px); }
@@ -119,8 +120,11 @@
         </div>
 
         <div class="flex gap-1 ml-auto">
-          <button id="btn-fit"      class="px-2.5 py-1 text-[11.5px] rounded-md border border-border bg-bg-2 text-fg-2 hover:text-fg hover:border-border-2 transition-colors">Fit</button>
-          <button id="btn-relayout" class="px-2.5 py-1 text-[11.5px] rounded-md border border-border bg-bg-2 text-fg-2 hover:text-fg hover:border-border-2 transition-colors">Relayout</button>
+          <button id="btn-fit" class="px-2.5 py-1 text-[11.5px] rounded-md border border-border bg-bg-2 text-fg-2 hover:text-fg hover:border-border-2 transition-colors">Fit</button>
+          <div class="inline-flex rounded-md border border-border overflow-hidden text-[11.5px]">
+            <button id="btn-mode-flow"  data-mode="flow"  class="mode-btn px-2.5 py-1 bg-bg-2 text-fg hover:text-fg transition-colors">Flow</button>
+            <button id="btn-mode-types" data-mode="types" class="mode-btn px-2.5 py-1 bg-bg-2 text-fg-2 hover:text-fg transition-colors border-l border-border">Types</button>
+          </div>
         </div>
       </header>
 
