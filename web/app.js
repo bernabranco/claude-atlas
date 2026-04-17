@@ -229,8 +229,9 @@ function tieredLayoutConfig() {
   const positions = {};
 
   /* Zigzag each row vertically so sibling arrows don't stack on the
-     same y-line — nodes alternate up/down like /\/\. */
-  const zigzag = 26;
+     same y-line — nodes alternate up/down like /\/\. Proportional to
+     row spacing so the pattern reads clearly but never overlaps. */
+  const zigzag = rowGap * 0.38;
 
   rows.forEach((type, rowIdx) => {
     const nodes = cy.nodes()
