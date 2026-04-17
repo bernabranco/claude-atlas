@@ -218,31 +218,31 @@ if (document.readyState === "complete") {
   window.addEventListener("load", mount);
 }
 
-/* Tiered preset: agents / commands / tools / mcp stacked as horizontal rows.
+/* Tiered preset: agents / commands / tools / mcp stacked as vertical columns.
    Gives the first-paint legibility of "what types exist here" before the
-   user hits Relayout to see the real connection shape. */
+   user hits Flow to see the real connection shape. */
 function tieredLayoutConfig() {
-  const rows = ["agent", "command", "tool", "mcp"];
+  const cols = ["agent", "command", "tool", "mcp"];
   const w = cy.width();
   const h = cy.height();
-  const rowGap = h / (rows.length + 1);
+  const colGap = w / (cols.length + 1);
   const positions = {};
 
-  /* Zigzag each row vertically so sibling arrows don't stack on the
-     same y-line — nodes alternate up/down like /\/\. Proportional to
-     row spacing so the pattern reads clearly but never overlaps. */
-  const zigzag = rowGap * 0.38;
+  /* Zigzag each column horizontally so sibling arrows don't stack on the
+     same x-line — nodes alternate left/right. Proportional to column
+     spacing so the pattern reads clearly but never overlaps. */
+  const zigzag = colGap * 0.38;
 
-  rows.forEach((type, rowIdx) => {
+  cols.forEach((type, colIdx) => {
     const nodes = cy.nodes()
       .filter((n) => n.data("type") === type)
       .sort((a, b) => (a.data("label") || "").localeCompare(b.data("label") || ""));
     if (!nodes.length) return;
-    const colGap = w / (nodes.length + 1);
-    const y = rowGap * (rowIdx + 1);
+    const rowGap = h / (nodes.length + 1);
+    const x = colGap * (colIdx + 1);
     nodes.forEach((n, i) => {
       const offset = (i % 2 === 0 ? -1 : 1) * zigzag;
-      positions[n.id()] = { x: colGap * (i + 1), y: y + offset };
+      positions[n.id()] = { x: x + offset, y: rowGap * (i + 1) };
     });
   });
 
