@@ -218,31 +218,49 @@ if (document.readyState === "complete") {
   window.addEventListener("load", mount);
 }
 
-/* Tiered preset: agents / commands / tools / mcp stacked as vertical columns.
-   Gives the first-paint legibility of "what types exist here" before the
-   user hits Flow to see the real connection shape. */
+/* Tiered preset: one circle per type, arranged in a 2x2 grid.
+   Lines between nodes of the same type radiate around a center
+   instead of stacking on a shared x/y axis — far fewer visual
+   collisions when there are many intra-type edges. */
 function tieredLayoutConfig() {
-  const cols = ["agent", "command", "tool", "mcp"];
+  const types = ["agent", "command", "tool", "mcp"];
   const w = cy.width();
   const h = cy.height();
-  const colGap = w / (cols.length + 1);
   const positions = {};
 
-  /* Zigzag each column horizontally so sibling arrows don't stack on the
-     same x-line — nodes alternate left/right. Proportional to column
-     spacing so the pattern reads clearly but never overlaps. */
-  const zigzag = colGap * 0.38;
+  const centers = {
+    agent:   { x: w * 0.28, y: h * 0.30 },
+    command: { x: w * 0.72, y: h * 0.30 },
+    tool:    { x: w * 0.28, y: h * 0.72 },
+    mcp:     { x: w * 0.72, y: h * 0.72 },
+  };
 
-  cols.forEach((type, colIdx) => {
+  const quadrant = Math.min(w, h) / 2;
+  const maxRadius = quadrant * 0.38;
+  const minRadius = 40;
+
+  types.forEach((type) => {
     const nodes = cy.nodes()
       .filter((n) => n.data("type") === type)
       .sort((a, b) => (a.data("label") || "").localeCompare(b.data("label") || ""));
     if (!nodes.length) return;
-    const rowGap = h / (nodes.length + 1);
-    const x = colGap * (colIdx + 1);
+    const center = centers[type];
+    const count = nodes.length;
+
+    if (count === 1) {
+      positions[nodes[0].id()] = { x: center.x, y: center.y };
+      return;
+    }
+
+    /* Scale radius so each node gets ~55px of arc, clamped to the quadrant. */
+    const radius = Math.max(minRadius, Math.min(maxRadius, (count * 55) / (2 * Math.PI)));
+
     nodes.forEach((n, i) => {
-      const offset = (i % 2 === 0 ? -1 : 1) * zigzag;
-      positions[n.id()] = { x: x + offset, y: rowGap * (i + 1) };
+      const angle = (i / count) * 2 * Math.PI - Math.PI / 2;
+      positions[n.id()] = {
+        x: center.x + radius * Math.cos(angle),
+        y: center.y + radius * Math.sin(angle),
+      };
     });
   });
 
