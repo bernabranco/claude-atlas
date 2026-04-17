@@ -183,11 +183,41 @@ cy.edges().style("opacity", 0);
 
 window.addEventListener("load", () => {
   cy.resize();
-  cy.layout(layoutConfig()).run();
-  cy.fit(undefined, 50);
+  cy.layout(tieredLayoutConfig()).run();
+  cy.fit(undefined, 60);
   cy.nodes().animate({ style: { opacity: 1 } }, { duration: 400, easing: "ease-out" });
   cy.edges().animate({ style: { opacity: 0.55 } }, { duration: 400, easing: "ease-out", delay: 150 });
 });
+
+/* Tiered preset: agents / commands / tools / mcp stacked as horizontal rows.
+   Gives the first-paint legibility of "what types exist here" before the
+   user hits Relayout to see the real connection shape. */
+function tieredLayoutConfig() {
+  const rows = ["agent", "command", "tool", "mcp"];
+  const w = cy.width();
+  const h = cy.height();
+  const rowGap = h / (rows.length + 1);
+  const positions = {};
+
+  rows.forEach((type, rowIdx) => {
+    const nodes = cy.nodes()
+      .filter((n) => n.data("type") === type)
+      .sort((a, b) => (a.data("label") || "").localeCompare(b.data("label") || ""));
+    if (!nodes.length) return;
+    const colGap = w / (nodes.length + 1);
+    const y = rowGap * (rowIdx + 1);
+    nodes.forEach((n, i) => {
+      positions[n.id()] = { x: colGap * (i + 1), y };
+    });
+  });
+
+  return {
+    name: "preset",
+    positions: (n) => positions[n.id()],
+    fit: true,
+    padding: 60,
+  };
+}
 
 function layoutConfig() {
   if (window.cytoscapeFcose) {
