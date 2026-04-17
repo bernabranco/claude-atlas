@@ -14,11 +14,9 @@
 
 As your agent config grows past a handful of agents, it stops being legible at a glance. Who invokes whom? Which agent owns the Write tool but never writes? Which agent does nothing at all? There is no linter, no dependency graph, no refactoring tool.
 
-`claude-atlas` is that tool. It works on **any folder laid out like a Claude Code config** — `./.claude` is the common case, but the folder name isn't load-bearing. Point it at `.claude/`, a custom `agents/` root, or a vendored config in a monorepo — if the structure matches (`agents/*.md`, optional `commands/*.md`, `settings.json`), it parses.
+`claude-atlas` is that tool. It reads `agents/`, `commands/`, `.mcp.json`, and `settings*.json`, builds a graph, and gives you three things:
 
-It reads `agents/`, `commands/`, `.mcp.json`, and `settings*.json`, builds a graph, and gives you three things:
-
-1. **A static visualization** — see your agent system laid out with typed edges (`invokes`, `grant`).
+1. **An interactive visualization** — see your agent system laid out with typed edges (`invokes`, `grant`).
 2. **A linter** — dead agents, missing references, delegation cycles, unused tool grants.
 3. **Structured JSON** — pipe the graph into anything else.
 
@@ -76,16 +74,6 @@ claude-atlas lint . --json | jq '[.[] | select(.level == "error")] | length'
 
 Both `scan` and `lint` support `--json` for scripting.
 
-## Commands
-
-| Command | What it does |
-|---|---|
-| `claude-atlas scan [path]` | Parse the config → print counts (add `--json` for full graph) |
-| `claude-atlas lint [path]` | Run linters; exit 1 on errors (add `--json` for structured findings) |
-| `claude-atlas serve [path]` | Start the graph viewer on port 4000 (override with `--port`) |
-
-Path defaults to `./.claude`, but any folder with the Claude Code layout works — pass an absolute or relative path to your config root.
-
 ## Install
 
 ```bash
@@ -108,7 +96,7 @@ Node 20+.
 
 ## What gets scanned
 
-You pass `claude-atlas` a path — usually `./.claude`, but it works on **any folder that follows the Claude Code layout**. The folder doesn't need to be named `.claude`; what matters is the structure inside it:
+Path defaults to `./.claude`, but the folder name isn't load-bearing — pass any path with the Claude Code layout (custom `agents/` root, monorepo-vendored config, etc.).
 
 | Source (relative to the path you pass) | Extracted |
 |---|---|
@@ -146,7 +134,7 @@ More on the [roadmap](#roadmap).
 
 ## Contributing
 
-Repo is private during the MVP. Once public, PRs welcome. No obfuscated builds — source in, source out.
+PRs welcome. See [CONTRIBUTING.md](CONTRIBUTING.md) for dev setup and workflow, and [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md) for community guidelines. No obfuscated builds — source in, source out.
 
 ## License
 
