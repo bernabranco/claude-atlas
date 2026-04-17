@@ -1,9 +1,35 @@
 if (window.cytoscapeFcose) cytoscape.use(window.cytoscapeFcose);
 
-const [graph, findings] = await Promise.all([
-  fetch("/api/graph").then((r) => r.json()),
-  fetch("/api/lint").then((r) => r.json()),
-]);
+async function fetchJSON(url) {
+  const r = await fetch(url);
+  if (!r.ok) {
+    const body = await r.text().catch(() => "");
+    throw new Error(`${url} → HTTP ${r.status}${body ? `: ${body.slice(0, 200)}` : ""}`);
+  }
+  return r.json();
+}
+
+let graph, findings;
+try {
+  [graph, findings] = await Promise.all([fetchJSON("/api/graph"), fetchJSON("/api/lint")]);
+} catch (err) {
+  showLoadError(err.message);
+  throw err;
+}
+
+function showLoadError(message) {
+  const loading = document.getElementById("loading");
+  if (!loading) return;
+  const safe = String(message).replace(/[&<>]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;" }[c]));
+  loading.innerHTML = `
+    <div class="flex flex-col items-center gap-2 max-w-md text-center px-6">
+      <div class="w-2 h-2 rounded-full bg-red-400"></div>
+      <div class="text-[13.5px] text-fg font-medium">Failed to load graph</div>
+      <div class="text-[11.5px] text-muted font-mono break-all leading-snug">${safe}</div>
+      <div class="text-[12px] text-muted mt-2">Check the server is running and the path points at a valid <span class="font-mono text-fg-2">.claude/</span> directory.</div>
+    </div>`;
+  loading.style.pointerEvents = "auto";
+}
 
 const nodeColor = {
   agent: "#7aa7ff",
