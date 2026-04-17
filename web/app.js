@@ -181,7 +181,7 @@ const cy = cytoscape({
 cy.nodes().style("opacity", 0);
 cy.edges().style("opacity", 0);
 
-window.addEventListener("load", () => {
+function mount() {
   cy.resize();
   cy.layout(tieredLayoutConfig()).run();
   cy.fit(undefined, 60);
@@ -193,7 +193,16 @@ window.addEventListener("load", () => {
     loading.classList.add("hide");
     setTimeout(() => loading.remove(), 400);
   }
-});
+}
+
+/* This module uses top-level await, which blocks the `load` event.
+   By the time we run, readyState is usually already "complete" — in
+   that case a `load` listener would never fire. */
+if (document.readyState === "complete") {
+  requestAnimationFrame(mount);
+} else {
+  window.addEventListener("load", mount);
+}
 
 /* Tiered preset: agents / commands / tools / mcp stacked as horizontal rows.
    Gives the first-paint legibility of "what types exist here" before the
