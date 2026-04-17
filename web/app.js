@@ -266,8 +266,8 @@ function groupsLayoutConfig() {
   };
 
   const quadrant = Math.min(w, h) / 2;
-  const maxRadius = quadrant * 0.48;
-  const minRadius = 70;
+  const maxRadius = quadrant * 0.38;
+  const minRadius = 40;
 
   types.forEach((type) => {
     const nodes = cy.nodes()
@@ -282,8 +282,8 @@ function groupsLayoutConfig() {
       return;
     }
 
-    /* Scale radius so each node gets ~80px of arc, clamped to the quadrant. */
-    const radius = Math.max(minRadius, Math.min(maxRadius, (count * 80) / (2 * Math.PI)));
+    /* Scale radius so each node gets ~55px of arc, clamped to the quadrant. */
+    const radius = Math.max(minRadius, Math.min(maxRadius, (count * 55) / (2 * Math.PI)));
 
     nodes.forEach((n, i) => {
       const angle = (i / count) * 2 * Math.PI - Math.PI / 2;
@@ -311,7 +311,7 @@ function layoutConfig() {
       nodeRepulsion: 9000,
       idealEdgeLength: 115,
       edgeElasticity: 0.22,
-      gravity: 0.28,
+      gravity: 0.2,
       gravityRangeCompound: 1.5,
       padding: 50,
       randomize: false,
