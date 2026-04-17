@@ -71,7 +71,6 @@ for (const e of graph.edges) {
 const cy = cytoscape({
   container: document.getElementById("cy"),
   elements,
-  wheelSensitivity: 0.2,
   minZoom: 0.15,
   maxZoom: 3,
   style: [
@@ -93,12 +92,11 @@ const cy = cytoscape({
         "border-width": 0,
         width: "data(size)",
         height: "data(size)",
-        "shadow-blur": 16,
-        "shadow-color": (n) => nodeColor[n.data("type")] || "#666",
-        "shadow-opacity": 0.35,
-        "shadow-offset-x": 0,
-        "shadow-offset-y": 0,
-        "transition-property": "opacity, border-width, shadow-opacity, width, height",
+        "underlay-color": (n) => nodeColor[n.data("type")] || "#666",
+        "underlay-padding": 6,
+        "underlay-opacity": 0.25,
+        "underlay-shape": "ellipse",
+        "transition-property": "opacity, border-width, underlay-opacity, underlay-padding, width, height",
         "transition-duration": "0.18s",
       },
     },
@@ -117,11 +115,11 @@ const cy = cytoscape({
     },
     {
       selector: "node.faded",
-      style: { opacity: 0.12, "shadow-opacity": 0 },
+      style: { opacity: 0.12, "underlay-opacity": 0 },
     },
     {
       selector: "node.hl",
-      style: { "shadow-opacity": 0.75, "shadow-blur": 28 },
+      style: { "underlay-opacity": 0.55, "underlay-padding": 10 },
     },
     {
       selector: "node:selected",
@@ -129,8 +127,8 @@ const cy = cytoscape({
         "border-width": 3,
         "border-color": "#ffffff",
         "border-opacity": 1,
-        "shadow-opacity": 0.85,
-        "shadow-blur": 36,
+        "underlay-opacity": 0.7,
+        "underlay-padding": 14,
       },
     },
     /* Edges */
