@@ -247,24 +247,40 @@ if (document.readyState === "complete") {
   window.addEventListener("load", mount);
 }
 
-/* Types preset: agents / commands / tools / mcp stacked as horizontal rows. */
+/* Types preset: agents / commands / tools / mcp stacked as horizontal rows.
+   Types with more than MAX_PER_ROW nodes wrap onto sub-rows so individual
+   nodes stay readable and labels don't collide. */
 function tieredLayoutConfig() {
-  const rows = ["agent", "command", "tool", "mcp"];
+  const tiers = ["agent", "command", "tool", "mcp"];
+  const MAX_PER_ROW = 10;
   const w = cy.width();
   const h = cy.height();
-  const rowGap = h / (rows.length + 1);
   const positions = {};
 
-  rows.forEach((type, rowIdx) => {
+  /* Pre-compute total sub-rows so vertical spacing scales with density. */
+  const perTier = tiers.map((type) => {
     const nodes = cy.nodes()
       .filter((n) => n.data("type") === type)
       .sort((a, b) => (a.data("label") || "").localeCompare(b.data("label") || ""));
-    if (!nodes.length) return;
-    const colGap = w / (nodes.length + 1);
-    const y = rowGap * (rowIdx + 1);
-    nodes.forEach((n, i) => {
-      positions[n.id()] = { x: colGap * (i + 1), y };
-    });
+    return { type, nodes, subRows: Math.max(1, Math.ceil(nodes.length / MAX_PER_ROW)) };
+  });
+  const totalSubRows = perTier.reduce((s, t) => s + t.subRows, 0);
+  const rowUnit = h / (totalSubRows + 1);
+
+  let rowIdx = 0;
+  perTier.forEach(({ nodes, subRows }) => {
+    if (!nodes.length) { rowIdx += subRows; return; }
+    for (let sr = 0; sr < subRows; sr++) {
+      const start = sr * MAX_PER_ROW;
+      const end = Math.min(start + MAX_PER_ROW, nodes.length);
+      const countInRow = end - start;
+      const colGap = w / (countInRow + 1);
+      const y = rowUnit * (rowIdx + 1);
+      for (let j = 0; j < countInRow; j++) {
+        positions[nodes[start + j].id()] = { x: colGap * (j + 1), y };
+      }
+      rowIdx++;
+    }
   });
 
   return {
