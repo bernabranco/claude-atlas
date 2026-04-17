@@ -2,7 +2,7 @@
 
 # claude-atlas
 
-**Map and lint your `.claude/` directory — agents, commands, tools, permissions as a navigable graph.**
+**Map and lint Claude Code agent configs — wherever they live on disk. Agents, commands, tools, permissions as a navigable graph.**
 
 [![npm version](https://img.shields.io/npm/v/claude-atlas.svg)](https://www.npmjs.com/package/claude-atlas)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
@@ -12,9 +12,11 @@
 
 ---
 
-As your `.claude/` directory grows past a handful of agents, it stops being legible at a glance. Who invokes whom? Which agent owns the Write tool but never writes? Which agent does nothing at all? There is no linter, no dependency graph, no refactoring tool.
+As your agent config grows past a handful of agents, it stops being legible at a glance. Who invokes whom? Which agent owns the Write tool but never writes? Which agent does nothing at all? There is no linter, no dependency graph, no refactoring tool.
 
-`claude-atlas` is that tool. It reads `.claude/agents/`, `.claude/commands/`, `.mcp.json`, and `settings*.json`, builds a graph, and gives you three things:
+`claude-atlas` is that tool. It works on **any folder laid out like a Claude Code config** — `./.claude` is the common case, but the folder name isn't load-bearing. Point it at `.claude/`, a custom `agents/` root, or a vendored config in a monorepo — if the structure matches (`agents/*.md`, optional `commands/*.md`, `settings.json`), it parses.
+
+It reads `agents/`, `commands/`, `.mcp.json`, and `settings*.json`, builds a graph, and gives you three things:
 
 1. **A static visualization** — see your agent system laid out with typed edges (`invokes`, `grant`).
 2. **A linter** — dead agents, missing references, delegation cycles, unused tool grants.
@@ -78,11 +80,11 @@ Both `scan` and `lint` support `--json` for scripting.
 
 | Command | What it does |
 |---|---|
-| `claude-atlas scan [path]` | Parse `.claude/` → print counts (add `--json` for full graph) |
+| `claude-atlas scan [path]` | Parse the config → print counts (add `--json` for full graph) |
 | `claude-atlas lint [path]` | Run linters; exit 1 on errors (add `--json` for structured findings) |
 | `claude-atlas serve [path]` | Start the graph viewer on port 4000 (override with `--port`) |
 
-Path defaults to `./.claude` in each case.
+Path defaults to `./.claude`, but any folder with the Claude Code layout works — pass an absolute or relative path to your config root.
 
 ## Install
 
@@ -106,12 +108,16 @@ Node 20+.
 
 ## What gets scanned
 
-| Source | Extracted |
+You pass `claude-atlas` a path — usually `./.claude`, but it works on **any folder that follows the Claude Code layout**. The folder doesn't need to be named `.claude`; what matters is the structure inside it:
+
+| Source (relative to the path you pass) | Extracted |
 |---|---|
-| `.claude/agents/*.md` | Name, description, tool grants (frontmatter), prose-mentioned delegations |
-| `.claude/commands/*.md` | Name, description, agents it invokes |
-| `.mcp.json` (repo root) | MCP servers declared for the project |
-| `.claude/settings.json` + `settings.local.json` | Allow / deny permission rules |
+| `agents/*.md` | Name, description, tool grants (frontmatter), prose-mentioned delegations |
+| `commands/*.md` | Name, description, agents it invokes |
+| `settings.json` + `settings.local.json` | Allow / deny permission rules |
+| `../.mcp.json` (parent directory) | MCP servers declared for the project |
+
+Agents must use Claude Code's frontmatter shape (`name`, `description`, `tools: [...]`). Agent directories from other frameworks (OpenAI Assistants, CrewAI, etc.) use a different schema and won't parse meaningfully.
 
 Agent→Agent delegation is detected by word-boundary matching on agent names in each agent's prose — imperfect but cheap, and catches most real orchestration patterns.
 
