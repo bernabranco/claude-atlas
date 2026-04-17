@@ -50,7 +50,7 @@ for (const e of graph.edges) {
 const maxDegree = Math.max(1, ...degree.values());
 function sizeFor(id) {
   const d = degree.get(id) || 0;
-  return 16 + Math.round(30 * (d / maxDegree));
+  return 14 + Math.round(46 * (d / maxDegree));
 }
 
 const lintBySubject = new Map();
