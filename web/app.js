@@ -250,17 +250,19 @@ function layoutConfig() {
     return {
       name: "fcose",
       animate: false,
-      quality: "default",
-      nodeRepulsion: 9000,
-      idealEdgeLength: 115,
-      edgeElasticity: 0.22,
-      gravity: 0.28,
+      quality: "proof",
+      nodeRepulsion: 28000,
+      idealEdgeLength: 180,
+      edgeElasticity: 0.15,
+      nodeSeparation: 120,
+      gravity: 0.15,
+      gravityRange: 3.0,
       gravityRangeCompound: 1.5,
-      padding: 50,
+      padding: 60,
       randomize: false,
     };
   }
-  return { name: "cose", animate: false, padding: 50 };
+  return { name: "cose", animate: false, padding: 60, nodeRepulsion: () => 400000, idealEdgeLength: () => 180 };
 }
 
 document.getElementById("btn-fit").addEventListener("click", () => {
