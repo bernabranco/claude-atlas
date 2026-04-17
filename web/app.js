@@ -186,7 +186,10 @@ let currentMode = "flow";
 
 function applyLayout(mode) {
   currentMode = mode;
-  const cfg = mode === "types" ? tieredLayoutConfig() : layoutConfig();
+  let cfg;
+  if (mode === "types")       cfg = tieredLayoutConfig();
+  else if (mode === "groups") cfg = groupsLayoutConfig();
+  else                        cfg = layoutConfig();
   cy.layout(cfg).run();
   document.querySelectorAll(".mode-btn").forEach((b) => {
     b.classList.toggle("active", b.dataset.mode === mode);
@@ -218,11 +221,42 @@ if (document.readyState === "complete") {
   window.addEventListener("load", mount);
 }
 
-/* Tiered preset: one circle per type, arranged in a 2x2 grid.
-   Lines between nodes of the same type radiate around a center
-   instead of stacking on a shared x/y axis — far fewer visual
-   collisions when there are many intra-type edges. */
+/* Types preset: agents / commands / tools / mcp as horizontal rows,
+   nodes zigzag within each row so sibling arrows don't stack on the
+   same y-line. */
 function tieredLayoutConfig() {
+  const rows = ["agent", "command", "tool", "mcp"];
+  const w = cy.width();
+  const h = cy.height();
+  const rowGap = h / (rows.length + 1);
+  const zigzag = rowGap * 0.38;
+  const positions = {};
+
+  rows.forEach((type, rowIdx) => {
+    const nodes = cy.nodes()
+      .filter((n) => n.data("type") === type)
+      .sort((a, b) => (a.data("label") || "").localeCompare(b.data("label") || ""));
+    if (!nodes.length) return;
+    const colGap = w / (nodes.length + 1);
+    const y = rowGap * (rowIdx + 1);
+    nodes.forEach((n, i) => {
+      const offset = (i % 2 === 0 ? -1 : 1) * zigzag;
+      positions[n.id()] = { x: colGap * (i + 1), y: y + offset };
+    });
+  });
+
+  return {
+    name: "preset",
+    positions: (n) => positions[n.id()],
+    fit: true,
+    padding: 60,
+  };
+}
+
+/* Groups preset: one circle per type, arranged in a 2x2 grid.
+   Arrows between nodes of the same type radiate around a center
+   instead of stacking on a shared axis. */
+function groupsLayoutConfig() {
   const types = ["agent", "command", "tool", "mcp"];
   const w = cy.width();
   const h = cy.height();
