@@ -217,6 +217,10 @@ function tieredLayoutConfig() {
   const rowGap = h / (rows.length + 1);
   const positions = {};
 
+  /* Zigzag each row vertically so sibling arrows don't stack on the
+     same y-line — nodes alternate up/down like /\/\. */
+  const zigzag = 26;
+
   rows.forEach((type, rowIdx) => {
     const nodes = cy.nodes()
       .filter((n) => n.data("type") === type)
@@ -225,7 +229,8 @@ function tieredLayoutConfig() {
     const colGap = w / (nodes.length + 1);
     const y = rowGap * (rowIdx + 1);
     nodes.forEach((n, i) => {
-      positions[n.id()] = { x: colGap * (i + 1), y };
+      const offset = (i % 2 === 0 ? -1 : 1) * zigzag;
+      positions[n.id()] = { x: colGap * (i + 1), y: y + offset };
     });
   });
 
