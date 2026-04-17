@@ -174,18 +174,26 @@ const cy = cytoscape({
       style: { "line-color": "#84d9a8", "target-arrow-color": "#84d9a8" },
     },
   ],
-  layout: layoutConfig(),
+  layout: { name: "preset" },
 });
 
-/* Nice load animation — start tiny, grow into place */
-cy.ready(() => {
-  cy.nodes().style("opacity", 0);
-  cy.edges().style("opacity", 0);
-  setTimeout(() => {
+/* Defer layout until after the container has measured dimensions —
+   fcose against a 0-size box yields a diagonal stack. */
+cy.nodes().style("opacity", 0);
+cy.edges().style("opacity", 0);
+
+function runInitialLayout() {
+  cy.resize();
+  const layout = cy.layout(layoutConfig());
+  layout.one("layoutstop", () => {
+    cy.fit(undefined, 50);
     cy.nodes().animate({ style: { opacity: 1 } }, { duration: 400, easing: "ease-out" });
     cy.edges().animate({ style: { opacity: 0.55 } }, { duration: 400, easing: "ease-out", delay: 150 });
-  }, 40);
-});
+  });
+  layout.run();
+}
+
+requestAnimationFrame(() => requestAnimationFrame(runInitialLayout));
 
 function layoutConfig() {
   if (window.cytoscapeFcose) {
