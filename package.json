@@ -1,6 +1,6 @@
 {
   "name": "claude-atlas",
-  "version": "0.1.3",
+  "version": "0.2.0",
   "description": "Map and lint your .claude/ directory — agents, commands, tools, permissions as a navigable graph",
   "type": "module",
   "bin": {
