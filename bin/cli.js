@@ -3,11 +3,12 @@ import { scanClaudeDir } from "../lib/scanner.js";
 import { lint } from "../lib/linter.js";
 import { startServer } from "../lib/server.js";
 import { planRename, applyPlan } from "../lib/rename.js";
+import { whoCan } from "../lib/who-can.js";
 
 const args = process.argv.slice(2);
 const [command, ...rest] = args;
 
-const BOOLEAN_FLAGS = new Set(["json", "dryRun"]);
+const BOOLEAN_FLAGS = new Set(["json", "dryRun", "deny"]);
 
 function parseFlags(argv) {
   const flags = { positional: [] };
@@ -180,6 +181,60 @@ function truncate(s, n = 80) {
   return s.length > n ? `${s.slice(0, n - 1)}…` : s;
 }
 
+async function cmdWhoCan(argv) {
+  const flags = parseFlags(argv);
+  const [permission, pathArg] = flags.positional;
+
+  if (!permission) {
+    console.error('Usage: claude-atlas who-can <permission> [path] [--deny] [--json]');
+    console.error('  e.g. claude-atlas who-can "Bash(git push)"');
+    process.exit(1);
+  }
+
+  const target = pathArg || flags.claudeDir || ".claude";
+  const graph = await scanClaudeDir(target);
+  const result = whoCan(graph, permission, { denyMode: flags.deny });
+
+  if (flags.json) {
+    console.log(JSON.stringify(result, null, 2));
+    return;
+  }
+
+  const mode = flags.deny ? "blocked from running" : "who can run";
+  console.log(`${mode}: ${result.permission}\n`);
+
+  if (result.allowedBy.length) {
+    console.log(`  Allow rules matched:`);
+    for (const r of result.allowedBy) console.log(`    - ${r}`);
+  } else if (!flags.deny) {
+    console.log(`  No allow rule matches "${result.permission}".`);
+  }
+  if (result.deniedBy.length) {
+    console.log(`  Deny rules matched:`);
+    for (const r of result.deniedBy) console.log(`    - ${r}`);
+  }
+
+  if (!result.agents.length) {
+    const why = flags.deny
+      ? "No agents blocked — no deny rule matches this permission."
+      : result.deniedBy.length && result.allowedBy.length
+      ? "No agents allowed — a deny rule blocks this permission. Re-run with --deny to see who's affected."
+      : result.allowedBy.length
+      ? "No agents have the required tool grant."
+      : "No agents allowed — no allow rule matches.";
+    console.log(`\n${why}`);
+    return;
+  }
+
+  console.log(`\n${result.agents.length} agent(s):\n`);
+  for (const a of result.agents) {
+    console.log(`  ${a.name}`);
+    console.log(`    tool grants: ${a.via.tools.join(", ")}`);
+    const rules = flags.deny ? a.via.deniedBy : a.via.allowedBy;
+    console.log(`    via rules:   ${rules.join(", ")}`);
+  }
+}
+
 function usage() {
   console.log(`claude-atlas — map and lint your .claude/ directory
 
@@ -197,6 +252,11 @@ Usage:
                                    Rename an agent and every reference to it.
                                    --dry-run prints the plan without writing.
 
+  claude-atlas who-can <permission> [path] [--deny] [--json]
+                                   List agents who can run a permission
+                                   (e.g. "Bash(git push)"). --deny inverts:
+                                   shows agents a deny rule blocks.
+
   claude-atlas serve [path]        Start the interactive graph viewer
   claude-atlas serve [path] --port 4000
                                    Choose the HTTP port (default 4000)
@@ -210,6 +270,7 @@ const handler = {
   lint: cmdLint,
   duplicates: cmdDuplicates,
   rename: cmdRename,
+  "who-can": cmdWhoCan,
   serve: cmdServe,
 }[command];
 
