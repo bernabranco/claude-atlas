@@ -126,6 +126,26 @@ Resolves a permission query — `Tool` or `Tool(spec)` — against `settings.jso
 
 The viewer surfaces the same data in the sidebar: click an agent and you get a **Permissions** section listing every allow/deny rule applicable to that agent's tool grants, color-coded.
 
+### `claude-atlas lint --format github` + `claude-atlas init-ci`
+
+Run the linter on every PR without setting up a token or a third-party action.
+
+```bash
+claude-atlas init-ci
+# ✓ Wrote .github/workflows/atlas.yml
+git add .github/workflows/atlas.yml && git commit -m "chore: add claude-atlas CI" && git push
+```
+
+The scaffolded workflow runs on any PR or push that touches `.claude/` or `.mcp.json` and executes:
+
+```bash
+npx --yes claude-atlas lint .claude --format github
+```
+
+`--format github` emits [GitHub Actions workflow commands](https://docs.github.com/actions/using-workflows/workflow-commands-for-github-actions) — one per finding — which GitHub parses from stdout and renders as inline PR annotations pinned to the offending file. `missing-agent-ref` (error) fails the check; `dead-agent`, `missing-description`, `delegation-cycle` (warning) and `unused-tool-grant`, `duplicate-candidate` (info) surface as annotations but don't block the merge.
+
+No `GITHUB_TOKEN` setup required — workflow commands are rendered from stdout, not through the API. If the file already exists, `init-ci` refuses; pass `--force` to overwrite.
+
 ### `--json` everywhere
 
 ```bash
@@ -193,7 +213,7 @@ More on the [roadmap](#roadmap).
 - [x] **Permission blast-radius** — `claude-atlas who-can "Bash(git push)"` lists every agent that can run the permission; `--deny` inverts; viewer sidebar surfaces applicable allow/deny rules per agent
 - [ ] **[Runtime overlay](https://github.com/bernabranco/claude-atlas/issues/8)** — parse session transcripts, show which edges actually fire
 - [ ] **[Markdown export](https://github.com/bernabranco/claude-atlas/issues/9)** — wiki-linked vault of the whole config
-- [ ] **[CI mode](https://github.com/bernabranco/claude-atlas/issues/10)** — annotate PRs with lint findings
+- [x] **CI mode** — `claude-atlas lint --format github` emits PR annotations; `claude-atlas init-ci` scaffolds `.github/workflows/atlas.yml`
 
 ## Contributing
 
