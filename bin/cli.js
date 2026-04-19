@@ -2,11 +2,12 @@
 import { scanClaudeDir } from "../lib/scanner.js";
 import { lint } from "../lib/linter.js";
 import { startServer } from "../lib/server.js";
+import { planRename, applyPlan } from "../lib/rename.js";
 
 const args = process.argv.slice(2);
 const [command, ...rest] = args;
 
-const BOOLEAN_FLAGS = new Set(["json"]);
+const BOOLEAN_FLAGS = new Set(["json", "dryRun"]);
 
 function parseFlags(argv) {
   const flags = { positional: [] };
@@ -16,11 +17,11 @@ function parseFlags(argv) {
       flags.positional.push(a);
       continue;
     }
-    const key = a.slice(2);
+    const key = camelCase(a.slice(2));
     if (BOOLEAN_FLAGS.has(key)) {
       flags[key] = true;
     } else {
-      flags[camelCase(key)] = argv[++i];
+      flags[key] = argv[++i];
     }
   }
   return flags;
@@ -111,6 +112,74 @@ async function cmdDuplicates(argv) {
   }
 }
 
+async function cmdRename(argv) {
+  const flags = parseFlags(argv);
+  const [oldName, newName, pathArg] = flags.positional;
+
+  if (!oldName || !newName) {
+    console.error("Usage: claude-atlas rename <old-name> <new-name> [path] [--dry-run] [--json]");
+    process.exit(1);
+  }
+
+  const target = pathArg || flags.claudeDir || ".claude";
+  const graph = await scanClaudeDir(target);
+  const plan = await planRename(graph, oldName, newName);
+
+  if (flags.json) {
+    console.log(JSON.stringify(plan, null, 2));
+    process.exit(plan.collision ? 1 : 0);
+  }
+
+  if (plan.collision) {
+    console.error(
+      `✗ Cannot rename to "${newName}" — collides with existing ${plan.collision.type} "${plan.collision.name}".`
+    );
+    process.exit(1);
+  }
+
+  if (!plan.definingFile && !plan.changes.length) {
+    console.log(`No agent named "${oldName}" and no references found — nothing to rename.`);
+    return;
+  }
+
+  if (!plan.definingFile) {
+    console.log(
+      `Note: no agent definition found for "${oldName}". Renaming references only.`
+    );
+  }
+
+  const byFile = new Map();
+  for (const ch of plan.changes) {
+    if (!byFile.has(ch.file)) byFile.set(ch.file, []);
+    byFile.get(ch.file).push(ch);
+  }
+
+  const action = flags.dryRun ? "Would rewrite" : "Rewriting";
+  console.log(`${action} ${byFile.size} file(s), ${plan.changes.length} change(s):\n`);
+  for (const [file, changes] of byFile) {
+    console.log(`  ${file}`);
+    for (const ch of changes) {
+      const tag = ch.kind === "frontmatter-name" ? "name" : "mention";
+      console.log(`    L${ch.line} [${tag}] ${truncate(ch.before.trim())}`);
+      console.log(`         → ${truncate(ch.after.trim())}`);
+    }
+  }
+
+  if (flags.dryRun) {
+    console.log(`\nDry run — no files changed. Re-run without --dry-run to apply.`);
+    return;
+  }
+
+  const result = await applyPlan(plan);
+  console.log(
+    `\n✓ Renamed "${oldName}" → "${newName}" in ${result.filesChanged} file(s), ${result.changeCount} change(s).`
+  );
+}
+
+function truncate(s, n = 80) {
+  return s.length > n ? `${s.slice(0, n - 1)}…` : s;
+}
+
 function usage() {
   console.log(`claude-atlas — map and lint your .claude/ directory
 
@@ -124,6 +193,10 @@ Usage:
   claude-atlas duplicates [path]   Show only duplicate-candidate findings,
                                    ranked by similarity score
 
+  claude-atlas rename <old> <new> [path] [--dry-run] [--json]
+                                   Rename an agent and every reference to it.
+                                   --dry-run prints the plan without writing.
+
   claude-atlas serve [path]        Start the interactive graph viewer
   claude-atlas serve [path] --port 4000
                                    Choose the HTTP port (default 4000)
@@ -136,6 +209,7 @@ const handler = {
   scan: cmdScan,
   lint: cmdLint,
   duplicates: cmdDuplicates,
+  rename: cmdRename,
   serve: cmdServe,
 }[command];
 
