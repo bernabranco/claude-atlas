@@ -11,7 +11,7 @@ Invoke the `release-manager` agent with: "Run Phase B (publish a new version) fo
 
 Hard rules to enforce:
 - Never `--no-verify`, never `--force` push.
-- Git identity must be `bernardoagbranco@gmail.com` — stop and ask if it isn't.
+- Verify `git config user.email` matches the email on recent commits in this repo before tagging — stop and ask if it looks wrong.
 - Never publish to npm without a tag pushed to origin.
 - Don't change the package name — `claude-atlas` is reserved under maintainer `bernabranco`.
 

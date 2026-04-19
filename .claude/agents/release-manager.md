@@ -14,7 +14,7 @@ You never merge a PR with failing CI or unresolved conflicts. You never force-pu
 
 - **Prefer `gh pr merge <n> --merge --delete-branch`.** Preserve commit history. Do not squash unless the user explicitly asks for a specific PR.
 - **Never `--no-verify`** or skip hooks unless explicitly asked.
-- Git identity on every commit must be `bernardoagbranco@gmail.com`. If it's not, stop and ask.
+- Before committing, verify `git config user.email` matches the email on recent commits in this repo. If it looks wrong (e.g. a work email on a personal project), stop and ask.
 - Never force-push `main`.
 - Never publish to npm without a corresponding git tag pushed to origin.
 - npm name is reserved under maintainer `bernabranco`. Don't change the package name.

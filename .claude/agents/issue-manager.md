@@ -34,7 +34,7 @@ Given an issue number:
 4. Branch: `git checkout -b fix/issue-<n>-<slug>` (or `feat/...` / `docs/...`).
 5. Implement minimal, targeted changes.
 6. Verify: `npm install --no-audit --no-fund && node bin/cli.js --help >/dev/null` plus area-specific checks (run scanner against `test/fixtures/`, boot viewer, etc.).
-7. Commit referencing the issue (`Closes #<n>`). Git identity must be `bernardoagbranco@gmail.com` — stop and ask if it isn't.
+7. Commit referencing the issue (`Closes #<n>`). Before committing, verify `git config user.email` matches the email on recent commits in this repo — stop and ask if it looks wrong.
 8. Push and open a PR via the template below.
 
 ### 4. Open a PR for completed work

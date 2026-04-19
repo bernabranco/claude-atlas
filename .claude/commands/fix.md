@@ -19,7 +19,7 @@ Steps:
 5. Implement minimal, targeted changes. Honor invariants in `core-owner`: no embeddings / no vector store, generic over project-specific, CLI must work without the viewer, no build step for `web/`, lint-rule ids are public contract.
 6. **Evaluate** — Re-read the issue. Root cause or just symptom? Any edge cases missed (missing `.claude/` dir, malformed frontmatter, deeply nested delegation, empty rule output)? If gaps, revise.
 7. Verify: `npm install --no-audit --no-fund` cold + `node bin/cli.js` against `test/fixtures` (and, for scanner/linter changes, diff against the golden fixture output).
-8. Commit referencing the issue body (`Closes #$ARGUMENTS`). Git identity must be `bernardoagbranco@gmail.com` — stop and ask if it isn't.
+8. Commit referencing the issue body (`Closes #$ARGUMENTS`). Before committing, verify `git config user.email` matches the email on recent commits in this repo — stop and ask if it looks wrong.
 9. Push and open a PR against `main`. Title: `fix: <summary> (closes #$ARGUMENTS)` (or `feat:` / `docs:`).
 
 Return the PR URL."
