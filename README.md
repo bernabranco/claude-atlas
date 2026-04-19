@@ -137,6 +137,7 @@ Agent→Agent delegation is detected by word-boundary matching on agent names in
 |---|---|---|
 | `dead-agent` | warning | Agent defined but never invoked by another agent or command |
 | `missing-agent-ref` | error | Command or agent mentions a name that doesn't exist |
+| `missing-description` | warning | Agent or command has no `description` in its frontmatter — hurts discoverability in pickers and sidebars |
 | `delegation-cycle` | warning | A invokes B invokes A |
 | `unused-tool-grant` | info | Agent has `Write` granted but its prose doesn't mention writing/editing |
 | `duplicate-candidate` | info | Two agents (or two commands) have overlapping prose + tools and may be worth merging |
