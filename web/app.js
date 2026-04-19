@@ -487,7 +487,7 @@ function renderDetails(type, payload, id) {
     }
     if (payload.invokes?.length) {
       parts.push(sectionTitle("Invokes", payload.invokes.length));
-      parts.push(`<div class="space-y-1.5">` + payload.invokes.map((s) => cardHTML(`agent:${s}`)).join("") + `</div>`);
+      parts.push(`<div class="space-y-1.5">` + invokeListHTML(payload) + `</div>`);
     }
     const invokedBy = graph.edges
       .filter((e) => e.to === `agent:${payload.slug}` && e.kind === "invokes")
@@ -515,7 +515,7 @@ function renderDetails(type, payload, id) {
   if (type === "command") {
     if (payload.invokes?.length) {
       parts.push(sectionTitle("Invokes", payload.invokes.length));
-      parts.push(`<div class="space-y-1.5">` + payload.invokes.map((s) => cardHTML(`agent:${s}`)).join("") + `</div>`);
+      parts.push(`<div class="space-y-1.5">` + invokeListHTML(payload) + `</div>`);
     }
   }
 
@@ -541,6 +541,23 @@ function rulePill(rule, kind) {
   return `<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded border ${style} text-[11.5px] font-mono">
     <span class="opacity-70">${glyph}</span>${escape(rule)}
   </span>`;
+}
+
+/**
+ * Render the Invokes list. When there are ≥2 mentions we prefix each card
+ * with its source-order index (1., 2., …) so readers see the recipe order
+ * for orchestration commands / agents. A single invocation is left plain.
+ */
+function invokeListHTML(payload) {
+  const ordered = payload.invokesOrdered || (payload.invokes || []).map((slug) => ({ slug }));
+  const numbered = ordered.length >= 2;
+  return ordered
+    .map((h, i) => {
+      const card = cardHTML(`agent:${h.slug}`);
+      if (!numbered) return card;
+      return `<div class="flex items-start gap-2"><span class="text-xs text-muted mt-2 font-mono tabular-nums shrink-0">${i + 1}.</span><div class="flex-1">${card}</div></div>`;
+    })
+    .join("");
 }
 
 function cardHTML(id) {
