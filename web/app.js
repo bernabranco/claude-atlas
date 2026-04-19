@@ -496,6 +496,15 @@ function renderDetails(type, payload, id) {
       parts.push(sectionTitle("Invoked by", invokedBy.length));
       parts.push(`<div class="space-y-1.5">` + invokedBy.map(cardHTML).join("") + `</div>`);
     }
+    const rules = payload.applicableRules;
+    if (rules && (rules.allowedBy.length || rules.deniedBy.length)) {
+      const total = rules.allowedBy.length + rules.deniedBy.length;
+      parts.push(sectionTitle("Permissions", total));
+      parts.push(`<div class="flex flex-wrap gap-1.5">` +
+        rules.allowedBy.map((r) => rulePill(r, "allow")).join("") +
+        rules.deniedBy.map((r) => rulePill(r, "deny")).join("") +
+        `</div>`);
+    }
   }
 
   if (type === "tool") {
@@ -522,6 +531,16 @@ function sectionTitle(label, count) {
 
 function tagPill(label, dataId) {
   return `<span data-id="${dataId}" class="inline-flex items-center px-2 py-0.5 rounded border border-border bg-bg-2 text-[11.5px] text-fg cursor-pointer hover:border-border-2 hover:bg-panel-2 transition-colors">${escape(label)}</span>`;
+}
+
+function rulePill(rule, kind) {
+  const style = kind === "deny"
+    ? "border-[#ef4444]/50 bg-[#ef4444]/10 text-[#fca5a5]"
+    : "border-[#22c55e]/40 bg-[#22c55e]/10 text-[#86efac]";
+  const glyph = kind === "deny" ? "✕" : "✓";
+  return `<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded border ${style} text-[11.5px] font-mono">
+    <span class="opacity-70">${glyph}</span>${escape(rule)}
+  </span>`;
 }
 
 function cardHTML(id) {

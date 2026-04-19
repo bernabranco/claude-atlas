@@ -107,6 +107,25 @@ Rewrites the defining agent's frontmatter `name:` and every word-boundary mentio
 
 Filenames stay put for now — `agents/code-reviewer.md` keeps its name after renaming the agent inside. Rename the file yourself if you want the slug to move with it.
 
+### `claude-atlas who-can <permission> [path] [--deny]`
+
+```
+who can run: Bash(git push)
+
+  Allow rules matched:
+    - Bash(git *)
+
+1 agent(s):
+
+  shipper
+    tool grants: Bash
+    via rules:   Bash(git *)
+```
+
+Resolves a permission query — `Tool` or `Tool(spec)` — against `settings.json`'s `allow`/`deny` intersected with each agent's tool grants. `Bash(git push)` is allowed by `Bash(git *)` (glob match, `*` → `.*`). `--deny` inverts: `who-can "Bash(git push --force)" --deny` shows every agent a deny rule blocks — useful when reviewing a permission-widening PR ("if I add this deny, who loses what?").
+
+The viewer surfaces the same data in the sidebar: click an agent and you get a **Permissions** section listing every allow/deny rule applicable to that agent's tool grants, color-coded.
+
 ### `--json` everywhere
 
 ```bash
@@ -171,7 +190,7 @@ More on the [roadmap](#roadmap).
 - [x] **Interactive viewer** — cytoscape.js graph with details sidebar, served by Hono
 - [x] **Consolidation hints** — flag near-duplicate agents/commands via token + tool similarity
 - [x] **Rename-impact** — `claude-atlas rename <old> <new> --dry-run` rewrites the frontmatter and every word-boundary mention across `agents/` + `commands/`
-- [ ] **[Permission blast-radius](https://github.com/bernabranco/claude-atlas/issues/7)** — `claude-atlas who-can "Bash(git push)"`
+- [x] **Permission blast-radius** — `claude-atlas who-can "Bash(git push)"` lists every agent that can run the permission; `--deny` inverts; viewer sidebar surfaces applicable allow/deny rules per agent
 - [ ] **[Runtime overlay](https://github.com/bernabranco/claude-atlas/issues/8)** — parse session transcripts, show which edges actually fire
 - [ ] **[Markdown export](https://github.com/bernabranco/claude-atlas/issues/9)** — wiki-linked vault of the whole config
 - [ ] **[CI mode](https://github.com/bernabranco/claude-atlas/issues/10)** — annotate PRs with lint findings

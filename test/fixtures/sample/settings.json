@@ -1,6 +1,17 @@
 {
   "permissions": {
-    "allow": ["Read", "Grep", "Glob", "Edit", "Write(docs/**)"],
-    "deny": []
+    "allow": [
+      "Read",
+      "Grep",
+      "Glob",
+      "Edit",
+      "Write(docs/**)",
+      "Bash(git *)",
+      "Bash(npm test)"
+    ],
+    "deny": [
+      "Bash(rm *)",
+      "Bash(git push --force*)"
+    ]
   }
 }
