@@ -1,0 +1,27 @@
+name: claude-atlas
+
+on:
+  pull_request:
+    paths:
+      - ".claude/**"
+      - ".mcp.json"
+      - "bin/**"
+      - "lib/**"
+      - ".github/workflows/atlas.yml"
+  push:
+    branches: [main]
+    paths:
+      - ".claude/**"
+      - ".mcp.json"
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - run: npm install --no-audit --no-fund
+      - name: Lint .claude/ (self-dogfood from source)
+        run: node bin/cli.js lint .claude --format github

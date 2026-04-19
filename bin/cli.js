@@ -4,11 +4,14 @@ import { lint } from "../lib/linter.js";
 import { startServer } from "../lib/server.js";
 import { planRename, applyPlan } from "../lib/rename.js";
 import { whoCan } from "../lib/who-can.js";
+import { formatFindingsGitHub } from "../lib/formatters.js";
+import { initCi } from "../lib/init-ci.js";
+import path from "path";
 
 const args = process.argv.slice(2);
 const [command, ...rest] = args;
 
-const BOOLEAN_FLAGS = new Set(["json", "dryRun", "deny"]);
+const BOOLEAN_FLAGS = new Set(["json", "dryRun", "deny", "force"]);
 
 function parseFlags(argv) {
   const flags = { positional: [] };
@@ -62,10 +65,16 @@ async function cmdLint(argv) {
   const target = flags.claudeDir || flags.positional[0] || ".claude";
   const graph = await scanClaudeDir(target);
   const findings = lint(graph);
+  const hasErrors = findings.some((f) => f.level === "error");
+
+  if (flags.format === "github") {
+    for (const line of formatFindingsGitHub(findings, graph)) console.log(line);
+    process.exit(hasErrors ? 1 : 0);
+  }
 
   if (flags.json) {
     console.log(JSON.stringify(findings, null, 2));
-    process.exit(findings.some((f) => f.level === "error") ? 1 : 0);
+    process.exit(hasErrors ? 1 : 0);
   }
 
   if (!findings.length) {
@@ -235,6 +244,22 @@ async function cmdWhoCan(argv) {
   }
 }
 
+async function cmdInitCi(argv) {
+  const flags = parseFlags(argv);
+  const result = await initCi({ force: Boolean(flags.force) });
+  const rel = path.relative(process.cwd(), result.path) || result.path;
+
+  if (result.existed && !result.written) {
+    console.error(`✗ ${rel} already exists. Re-run with --force to overwrite.`);
+    process.exit(1);
+  }
+  console.log(`✓ Wrote ${rel}`);
+  console.log(`\nNext steps:`);
+  console.log(`  1. Commit ${rel}`);
+  console.log(`  2. Push — the workflow runs on PRs touching .claude/ or .mcp.json`);
+  console.log(`  3. Findings appear as PR annotations; errors fail the check`);
+}
+
 function usage() {
   console.log(`claude-atlas — map and lint your .claude/ directory
 
@@ -244,6 +269,9 @@ Usage:
 
   claude-atlas lint [path]         Lint the graph for issues
   claude-atlas lint [path] --json  Emit findings as JSON (exit 1 on errors)
+  claude-atlas lint [path] --format github
+                                   Emit GitHub Actions workflow commands
+                                   (PR annotations); exit 1 on errors
 
   claude-atlas duplicates [path]   Show only duplicate-candidate findings,
                                    ranked by similarity score
@@ -256,6 +284,10 @@ Usage:
                                    List agents who can run a permission
                                    (e.g. "Bash(git push)"). --deny inverts:
                                    shows agents a deny rule blocks.
+
+  claude-atlas init-ci [--force]   Scaffold .github/workflows/atlas.yml so
+                                   the linter runs on every PR. --force
+                                   overwrites an existing file.
 
   claude-atlas serve [path]        Start the interactive graph viewer
   claude-atlas serve [path] --port 4000
@@ -271,6 +303,7 @@ const handler = {
   duplicates: cmdDuplicates,
   rename: cmdRename,
   "who-can": cmdWhoCan,
+  "init-ci": cmdInitCi,
   serve: cmdServe,
 }[command];
 
