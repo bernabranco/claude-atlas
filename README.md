@@ -87,6 +87,26 @@ Renders cold in under a second via cytoscape.js.
 
 Shortcut that only surfaces `duplicate-candidate` findings from the linter, sorted by similarity. Similarity is Jaccard on tokenized description + prose, blended 70/30 with tool-grant overlap.
 
+### `claude-atlas rename <old> <new> [path] [--dry-run]`
+
+```
+Would rewrite 3 file(s), 5 change(s):
+
+  agents/reviewer.md
+    L2 [name]    name: reviewer  →  name: code-reviewer
+    L7 [mention] The reviewer reads a diff…  →  The code-reviewer reads a diff…
+  agents/planner.md
+    L8 [mention] …hands the plan to the reviewer…  →  …hands the plan to the code-reviewer…
+  commands/review.md
+    L5 [mention] Invoke the reviewer agent…  →  Invoke the code-reviewer agent…
+
+Dry run — no files changed. Re-run without --dry-run to apply.
+```
+
+Rewrites the defining agent's frontmatter `name:` and every word-boundary mention across `agents/` and `commands/`. Matches the scanner's reference detection, so anything the graph counts as an invocation gets updated. Exits non-zero if `<new>` would collide with an existing agent or command slug. `--json` prints a structured diff for scripting.
+
+Filenames stay put for now — `agents/code-reviewer.md` keeps its name after renaming the agent inside. Rename the file yourself if you want the slug to move with it.
+
 ### `--json` everywhere
 
 ```bash
@@ -150,7 +170,7 @@ More on the [roadmap](#roadmap).
 - [x] **Linter** — dead agents, missing refs, cycles, unused grants, duplicate candidates
 - [x] **Interactive viewer** — cytoscape.js graph with details sidebar, served by Hono
 - [x] **Consolidation hints** — flag near-duplicate agents/commands via token + tool similarity
-- [ ] **[Rename-impact](https://github.com/bernabranco/claude-atlas/issues/6)** — `claude-atlas rename code-reviewer new-name --dry-run`
+- [x] **Rename-impact** — `claude-atlas rename <old> <new> --dry-run` rewrites the frontmatter and every word-boundary mention across `agents/` + `commands/`
 - [ ] **[Permission blast-radius](https://github.com/bernabranco/claude-atlas/issues/7)** — `claude-atlas who-can "Bash(git push)"`
 - [ ] **[Runtime overlay](https://github.com/bernabranco/claude-atlas/issues/8)** — parse session transcripts, show which edges actually fire
 - [ ] **[Markdown export](https://github.com/bernabranco/claude-atlas/issues/9)** — wiki-linked vault of the whole config
