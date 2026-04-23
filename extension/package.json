@@ -4,7 +4,7 @@
   "description": "Map and lint your .claude/ directory — agents, commands, tools, permissions as a navigable graph",
   "version": "0.1.0",
   "publisher": "bernabranco",
-  "icon": "assets/icon.jpg",
+  "icon": "assets/icon.png",
   "repository": {
     "type": "git",
     "url": "https://github.com/bernabranco/claude-atlas"
