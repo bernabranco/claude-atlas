@@ -1,9 +1,5 @@
-/**
- * esbuild bundler for the VS Code extension.
- * Bundles src/extension.ts (and its imports from ../lib/) into out/extension.js.
- * Run via: node build.mjs
- */
 import esbuild from "esbuild";
+import { copyFileSync, mkdirSync } from "node:fs";
 
 await esbuild.build({
   entryPoints: ["src/extension.ts"],
@@ -16,3 +12,8 @@ await esbuild.build({
   sourcemap: true,
   logLevel: "info",
 });
+
+// Copy web assets
+mkdirSync("web", { recursive: true });
+copyFileSync("../web/index.html", "web/index.html");
+copyFileSync("../web/app.js", "web/app.js");

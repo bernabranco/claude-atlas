@@ -4,6 +4,11 @@
   "description": "Map and lint your .claude/ directory — agents, commands, tools, permissions as a navigable graph",
   "version": "0.1.0",
   "publisher": "bernabranco",
+  "icon": "assets/icon.jpg",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/bernabranco/claude-atlas"
+  },
   "engines": {
     "vscode": "^1.85.0"
   },
@@ -34,11 +39,13 @@
   "scripts": {
     "compile": "tsc --noEmit && node build.mjs",
     "watch": "tsc --watch",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "package": "npm run compile && npx vsce package --no-dependencies"
   },
   "devDependencies": {
     "@types/node": "^20.0.0",
     "@types/vscode": "^1.85.0",
+    "@vscode/vsce": "^3.9.1",
     "esbuild": "^0.20.0",
     "typescript": "^5.3.0"
   }

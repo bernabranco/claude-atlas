@@ -35,3 +35,30 @@ jobs:
 
       - name: Duplicates fixture
         run: node bin/cli.js duplicates test/fixtures/sample
+
+  extension:
+    name: extension package
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install root deps (web assets)
+        run: npm ci
+
+      - name: Install extension deps
+        run: npm ci
+        working-directory: extension
+
+      - name: Compile + package
+        run: npm run package
+        working-directory: extension
+
+      - name: Upload vsix
+        uses: actions/upload-artifact@v4
+        with:
+          name: claude-atlas-vsix
+          path: extension/*.vsix

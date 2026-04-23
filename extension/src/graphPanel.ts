@@ -1,36 +1,16 @@
 import * as vscode from "vscode";
-import * as fs from "fs";
-import * as path from "path";
-
-// lib/scanner.js and lib/rename.js are ESM modules; we import them
-// dynamically at runtime so the CommonJS bundle can interop with them.
-type ScanClaudeDir = (claudeDir: string) => Promise<unknown>;
-type PlanRename = (graph: unknown, oldName: string, newName: string) => Promise<unknown>;
-type ApplyPlan = (plan: unknown) => Promise<unknown>;
+import * as fs from "node:fs";
+import * as path from "node:path";
+import { scanClaudeDir } from "../../lib/scanner.js";
+import { lint } from "../../lib/linter.js";
+import { planRename, applyPlan } from "../../lib/rename.js";
 
 export class GraphPanel {
-  public static current: GraphPanel | undefined;
+  public static current: GraphPanel | undefined; // NOSONAR — reassigned in createOrShow and dispose
   private readonly _panel: vscode.WebviewPanel;
   private readonly _claudeDir: string;
   private readonly _webRoot: string;
-  private _disposables: vscode.Disposable[] = [];
-
-  private static async _loadLibs(): Promise<{
-    scanClaudeDir: ScanClaudeDir;
-    planRename: PlanRename;
-    applyPlan: ApplyPlan;
-  }> {
-    // Dynamic imports keep the CommonJS bundle from choking on ESM lib files.
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const scanner = await (Function('return import("../../lib/scanner.js")')() as Promise<any>);
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const rename = await (Function('return import("../../lib/rename.js")')() as Promise<any>);
-    return {
-      scanClaudeDir: scanner.scanClaudeDir,
-      planRename: rename.planRename,
-      applyPlan: rename.applyPlan,
-    };
-  }
+  private readonly _disposables: vscode.Disposable[] = [];
 
   public static createOrShow(
     context: vscode.ExtensionContext,
@@ -106,9 +86,10 @@ export class GraphPanel {
 
   private async _sendGraph(): Promise<void> {
     try {
-      const { scanClaudeDir } = await GraphPanel._loadLibs();
       const graph = await scanClaudeDir(this._claudeDir);
+      const findings = lint(graph);
       this._panel.webview.postMessage({ type: "graph", data: graph });
+      this._panel.webview.postMessage({ type: "lint", data: findings });
     } catch (err) {
       this._panel.webview.postMessage({
         type: "error",
@@ -123,7 +104,6 @@ export class GraphPanel {
     apply: boolean
   ): Promise<void> {
     try {
-      const { scanClaudeDir, planRename, applyPlan } = await GraphPanel._loadLibs();
       const graph = await scanClaudeDir(this._claudeDir);
       const plan = await planRename(graph, oldName, newName);
 
