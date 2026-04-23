@@ -25,8 +25,7 @@ export class GraphPanel {
       return GraphPanel.current;
     }
 
-    // webRoot is the `web/` folder at the repo root (one level above `extension/`)
-    const webRoot = path.resolve(context.extensionPath, "..", "web");
+    const webRoot = path.resolve(context.extensionPath, "web");
 
     const panel = vscode.window.createWebviewPanel(
       "claudeAtlasGraph",
@@ -36,7 +35,6 @@ export class GraphPanel {
         enableScripts: true,
         localResourceRoots: [
           vscode.Uri.file(webRoot),
-          vscode.Uri.file(path.resolve(context.extensionPath, "..", "node_modules")),
         ],
         retainContextWhenHidden: true,
       }

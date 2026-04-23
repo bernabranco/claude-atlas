@@ -2,7 +2,7 @@
   "name": "claude-atlas",
   "displayName": "Claude Atlas",
   "description": "Map and lint your .claude/ directory — agents, commands, tools, permissions as a navigable graph",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "publisher": "bernabranco",
   "icon": "assets/icon.png",
   "repository": {
