@@ -1,0 +1,45 @@
+{
+  "name": "claude-atlas",
+  "displayName": "Claude Atlas",
+  "description": "Map and lint your .claude/ directory — agents, commands, tools, permissions as a navigable graph",
+  "version": "0.1.0",
+  "publisher": "bernabranco",
+  "engines": {
+    "vscode": "^1.85.0"
+  },
+  "categories": [
+    "Visualization",
+    "Linters"
+  ],
+  "main": "./out/extension.js",
+  "activationEvents": [
+    "workspaceContains:**/.claude"
+  ],
+  "contributes": {
+    "commands": [
+      {
+        "command": "claude-atlas.openGraph",
+        "title": "Claude Atlas: Open Graph"
+      },
+      {
+        "command": "claude-atlas.lint",
+        "title": "Claude Atlas: Lint .claude/"
+      },
+      {
+        "command": "claude-atlas.rename",
+        "title": "Claude Atlas: Rename Agent"
+      }
+    ]
+  },
+  "scripts": {
+    "compile": "tsc --noEmit && node build.mjs",
+    "watch": "tsc --watch",
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "@types/vscode": "^1.85.0",
+    "esbuild": "^0.20.0",
+    "typescript": "^5.3.0"
+  }
+}
