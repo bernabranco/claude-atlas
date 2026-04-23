@@ -480,6 +480,14 @@ function renderDetails(type, payload, id) {
   }
 
   if (type === "agent") {
+    parts.push(`
+      <div class="mt-3 mb-1">
+        <button data-rename-name="${escape(payload.name)}"
+          class="rename-btn inline-flex items-center gap-1.5 px-2.5 py-1 text-[11.5px] rounded-md border border-border bg-bg-2 text-fg-2 hover:text-fg hover:border-border-2 transition-colors">
+          Rename
+        </button>
+      </div>`);
+
     if (payload.tools?.length) {
       parts.push(sectionTitle("Tools", payload.tools.length));
       parts.push(`<div class="flex flex-wrap gap-1.5">` +
@@ -587,6 +595,197 @@ function wireClickThroughs(container) {
       showNode(target);
     });
   });
+
+  container.querySelectorAll(".rename-btn").forEach((btn) => {
+    btn.addEventListener("click", () => openRenameModal(btn.dataset.renameName));
+  });
+}
+
+/* ===== Rename modal ===== */
+const renameModal = document.getElementById("rename-modal");
+const renameOldEl = document.getElementById("rename-old");
+const renameNewEl = document.getElementById("rename-new");
+const renamePreviewBtn = document.getElementById("rename-preview");
+const renameApplyBtn = document.getElementById("rename-apply");
+const renameCancelBtn = document.getElementById("rename-cancel");
+const renameStatus = document.getElementById("rename-status");
+const renameDiffSection = document.getElementById("rename-diff-section");
+const renameDiffEl = document.getElementById("rename-diff");
+
+let pendingPlan = null;
+
+function openRenameModal(agentName) {
+  pendingPlan = null;
+  renameOldEl.value = agentName;
+  renameNewEl.value = "";
+  renameApplyBtn.disabled = true;
+  renameStatus.classList.add("hidden");
+  renameDiffSection.classList.add("hidden");
+  renameDiffEl.textContent = "";
+  renameModal.classList.remove("hidden");
+  renameNewEl.focus();
+}
+
+function closeRenameModal() {
+  renameModal.classList.add("hidden");
+  pendingPlan = null;
+}
+
+function setRenameStatus(msg, isError = false) {
+  renameStatus.textContent = msg;
+  renameStatus.className = `text-[12px] mb-3 ${isError ? "text-red-300" : "text-muted"}`;
+  renameStatus.classList.remove("hidden");
+}
+
+function renderDiffPreview(plan) {
+  if (!plan.changes.length) {
+    renameDiffEl.textContent = "(no changes — agent name not found in any file)";
+    return;
+  }
+  const lines = [];
+  let lastFile = null;
+  for (const ch of plan.changes) {
+    if (ch.file !== lastFile) {
+      if (lastFile !== null) lines.push("");
+      lines.push(`--- ${ch.file}`);
+      lastFile = ch.file;
+    }
+    lines.push(`L${ch.line}  - ${ch.before.trim()}`);
+    lines.push(`L${ch.line}  + ${ch.after.trim()}`);
+  }
+  renameDiffEl.textContent = lines.join("\n");
+}
+
+renameCancelBtn.addEventListener("click", closeRenameModal);
+
+renameNewEl.addEventListener("keydown", (e) => {
+  if (e.key === "Escape") closeRenameModal();
+  if (e.key === "Enter") renamePreviewBtn.click();
+});
+
+renamePreviewBtn.addEventListener("click", async () => {
+  const oldName = renameOldEl.value.trim();
+  const newName = renameNewEl.value.trim();
+  if (!newName) { setRenameStatus("Enter a new name first.", true); return; }
+  if (newName === oldName) { setRenameStatus("New name is the same as the current name.", true); return; }
+
+  renamePreviewBtn.disabled = true;
+  renameApplyBtn.disabled = true;
+  renameDiffSection.classList.add("hidden");
+  setRenameStatus("Fetching preview…");
+
+  try {
+    const res = await fetch("/api/rename", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ old: oldName, new: newName, apply: false }),
+    });
+    const data = await res.json();
+    if (!res.ok) { setRenameStatus(data.error || `Server error ${res.status}`, true); return; }
+
+    pendingPlan = data.plan;
+
+    if (pendingPlan.collision) {
+      setRenameStatus(
+        `Cannot rename: "${newName}" collides with existing ${pendingPlan.collision.type} "${pendingPlan.collision.name}".`,
+        true
+      );
+      renameDiffSection.classList.remove("hidden");
+      renderDiffPreview(pendingPlan);
+      return;
+    }
+
+    const count = pendingPlan.changes.length;
+    setRenameStatus(`Preview: ${count} change(s) across ${new Set(pendingPlan.changes.map((c) => c.file)).size} file(s).`);
+    renameDiffSection.classList.remove("hidden");
+    renderDiffPreview(pendingPlan);
+    renameApplyBtn.disabled = false;
+  } catch (err) {
+    setRenameStatus(`Request failed: ${err.message}`, true);
+  } finally {
+    renamePreviewBtn.disabled = false;
+  }
+});
+
+renameApplyBtn.addEventListener("click", async () => {
+  const oldName = renameOldEl.value.trim();
+  const newName = renameNewEl.value.trim();
+  if (!newName || !pendingPlan) return;
+
+  renameApplyBtn.disabled = true;
+  renamePreviewBtn.disabled = true;
+  setRenameStatus("Applying rename…");
+
+  try {
+    const res = await fetch("/api/rename", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ old: oldName, new: newName, apply: true }),
+    });
+    const data = await res.json();
+    if (!res.ok) { setRenameStatus(data.error || `Server error ${res.status}`, true); renamePreviewBtn.disabled = false; return; }
+
+    setRenameStatus(`Renamed "${oldName}" to "${newName}" — refreshing graph…`);
+    closeRenameModal();
+    await refreshGraph();
+  } catch (err) {
+    setRenameStatus(`Request failed: ${err.message}`, true);
+    renamePreviewBtn.disabled = false;
+  }
+});
+
+async function refreshGraph() {
+  try {
+    [graph, findings] = await Promise.all([fetchJSON("/api/graph"), fetchJSON("/api/lint")]);
+  } catch (err) {
+    showLoadError(err.message);
+    return;
+  }
+
+  /* Rebuild cytoscape elements */
+  cy.elements().remove();
+
+  const newDegree = new Map();
+  for (const e of graph.edges) {
+    newDegree.set(e.from, (newDegree.get(e.from) || 0) + 1);
+    newDegree.set(e.to, (newDegree.get(e.to) || 0) + 1);
+  }
+  const newMaxDegree = Math.max(1, ...newDegree.values());
+  function newSizeFor(id) {
+    const d = newDegree.get(id) || 0;
+    return 14 + Math.round(46 * (d / newMaxDegree));
+  }
+
+  lintBySubject.clear();
+  for (const f of findings) {
+    if (!f.subject) continue;
+    const bucket = lintBySubject.get(f.subject) || { error: 0, warning: 0, info: 0 };
+    bucket[f.level] = (bucket[f.level] || 0) + 1;
+    lintBySubject.set(f.subject, bucket);
+  }
+
+  const newElements = [];
+  function addEl(id, label, type, payload) {
+    newElements.push({ data: { id, label, type, payload, size: newSizeFor(id), lint: lintLevel(id) } });
+  }
+  for (const a of graph.agents)     addEl(`agent:${a.slug}`,   a.name,       "agent",   a);
+  for (const c of graph.commands)   addEl(`command:${c.slug}`, `/${c.slug}`, "command", c);
+  for (const t of graph.tools)      addEl(`tool:${t.slug}`,    t.name,       "tool",    t);
+  for (const m of graph.mcpServers) addEl(`mcp:${m.slug}`,     m.name,       "mcp",     m);
+
+  let eid = 0;
+  for (const e of graph.edges) {
+    newElements.push({ data: { id: `e${eid++}`, source: e.from, target: e.to, kind: e.kind } });
+  }
+
+  cy.add(newElements);
+
+  document.getElementById("counts").textContent =
+    `${graph.agents.length} agents · ${graph.commands.length} commands · ${graph.tools.length} tools · ${graph.mcpServers.length} mcp`;
+
+  renderGlobalLint(findings);
+  applyLayout(currentMode);
+  showEmpty();
 }
 
 function renderGlobalLint(items) {
