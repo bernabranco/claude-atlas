@@ -68,6 +68,18 @@
       #side::-webkit-scrollbar-thumb { background: #22283a; border-radius: 4px; }
       #side::-webkit-scrollbar-thumb:hover { background: #2e3750; }
 
+      /* Rename modal */
+      #rename-modal {
+        position: absolute; inset: 0;
+        display: flex; flex-direction: column;
+        background: #000000;
+        z-index: 20;
+        padding: 20px;
+        overflow-y: auto;
+      }
+      #rename-modal.hidden { display: none; }
+      #rename-diff { font-family: ui-monospace, SFMono-Regular, monospace; font-size: 11.5px; white-space: pre-wrap; word-break: break-all; }
+
       /* Loading overlay */
       #loading {
         position: absolute; inset: 0;
@@ -179,6 +191,46 @@
           </h2>
           <div id="lint" class="space-y-1.5"></div>
         </div>
+
+        <!-- Rename modal — shown inside the sidebar, hidden by default -->
+        <div id="rename-modal" class="hidden">
+          <div class="flex items-center justify-between mb-4">
+            <h2 class="text-[13px] font-semibold tracking-tight">Rename agent</h2>
+            <button id="rename-cancel" class="text-[11.5px] text-muted hover:text-fg transition-colors">Cancel</button>
+          </div>
+
+          <div class="space-y-3 mb-4">
+            <div>
+              <label for="rename-old" class="block text-[10.5px] uppercase tracking-[0.08em] text-muted font-semibold mb-1">Current name</label>
+              <input id="rename-old" readonly
+                class="w-full bg-bg-2 border border-border text-fg-2 text-[12.5px] rounded-md px-3 py-1.5 cursor-not-allowed" />
+            </div>
+            <div>
+              <label for="rename-new" class="block text-[10.5px] uppercase tracking-[0.08em] text-muted font-semibold mb-1">New name</label>
+              <input id="rename-new" placeholder="Enter new name…"
+                class="w-full bg-bg-2 border border-border hover:border-border-2 focus:border-accent/60 focus:outline-none focus:ring-2 focus:ring-accent/20 text-fg text-[12.5px] rounded-md px-3 py-1.5 transition-colors" />
+            </div>
+          </div>
+
+          <div class="flex gap-2 mb-4">
+            <button id="rename-preview"
+              class="flex-1 px-3 py-1.5 text-[12px] rounded-md border border-border bg-bg-2 text-fg hover:border-border-2 hover:bg-panel-2 transition-colors">
+              Preview changes
+            </button>
+            <button id="rename-apply" disabled
+              class="flex-1 px-3 py-1.5 text-[12px] rounded-md border border-accent/40 bg-accent/10 text-accent hover:bg-accent/20 transition-colors disabled:opacity-30 disabled:cursor-not-allowed">
+              Apply rename
+            </button>
+          </div>
+
+          <div id="rename-status" class="text-[12px] text-muted mb-3 hidden"></div>
+
+          <div id="rename-diff-section" class="hidden">
+            <h3 class="text-[10.5px] uppercase tracking-[0.08em] text-muted font-semibold mb-2">Diff preview</h3>
+            <div id="rename-diff" class="p-3 rounded-md border border-border bg-bg-2 text-fg leading-relaxed max-h-64 overflow-y-auto"></div>
+          </div>
+        </div>
+
       </aside>
 
     </div>

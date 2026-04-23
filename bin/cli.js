@@ -11,7 +11,7 @@ import path from "path";
 const args = process.argv.slice(2);
 const [command, ...rest] = args;
 
-const BOOLEAN_FLAGS = new Set(["json", "dryRun", "deny", "force"]);
+const BOOLEAN_FLAGS = new Set(["json", "dryRun", "deny", "force", "readOnly"]);
 
 function parseFlags(argv) {
   const flags = { positional: [] };
@@ -57,7 +57,8 @@ async function cmdServe(argv) {
   const flags = parseFlags(argv);
   const target = flags.claudeDir || flags.positional[0] || ".claude";
   const port = flags.port ? Number(flags.port) : 4000;
-  startServer({ claudeDir: target, port });
+  const readOnly = Boolean(flags.readOnly);
+  startServer({ claudeDir: target, port, readOnly });
 }
 
 async function cmdLint(argv) {
@@ -292,6 +293,8 @@ Usage:
   claude-atlas serve [path]        Start the interactive graph viewer
   claude-atlas serve [path] --port 4000
                                    Choose the HTTP port (default 4000)
+  claude-atlas serve [path] --read-only
+                                   Disable mutating endpoints (rename etc.)
 
 Defaults to ./.claude if no path is given.
 `);
