@@ -4,7 +4,7 @@ import { lint } from "../lib/linter.js";
 import { startServer } from "../lib/server.js";
 import { planRename, applyPlan } from "../lib/rename.js";
 import { whoCan } from "../lib/who-can.js";
-import { formatFindingsGitHub } from "../lib/formatters.js";
+import { formatFindingsGitHub, filterFindings, VALID_RULE_CODES } from "../lib/formatters.js";
 import { initCi } from "../lib/init-ci.js";
 import path from "path";
 
@@ -61,11 +61,30 @@ async function cmdServe(argv) {
   startServer({ claudeDir: target, port, readOnly });
 }
 
+function parseRuleCodes(raw) {
+  if (!raw) return null;
+  const requested = raw.split(",").map((s) => s.trim()).filter(Boolean);
+  const unknown = requested.filter((c) => !VALID_RULE_CODES.includes(c));
+  if (unknown.length) {
+    console.error(`Unknown rule code(s): ${unknown.join(", ")}`);
+    console.error(`Valid codes: ${VALID_RULE_CODES.join(", ")}`);
+    process.exit(1);
+  }
+  return requested;
+}
+
 async function cmdLint(argv) {
   const flags = parseFlags(argv);
   const target = flags.claudeDir || flags.positional[0] || ".claude";
+  const ruleCodes = parseRuleCodes(flags.rule);
+
   const graph = await scanClaudeDir(target);
-  const findings = lint(graph);
+  let findings = lint(graph);
+
+  if (ruleCodes) {
+    findings = filterFindings(findings, ruleCodes);
+  }
+
   const hasErrors = findings.some((f) => f.level === "error");
 
   if (flags.format === "github") {
@@ -78,6 +97,10 @@ async function cmdLint(argv) {
     process.exit(hasErrors ? 1 : 0);
   }
 
+  printFindingsText(findings);
+}
+
+function printFindingsText(findings) {
   if (!findings.length) {
     console.log("✓ No issues found.");
     return;
@@ -273,6 +296,13 @@ Usage:
   claude-atlas lint [path] --format github
                                    Emit GitHub Actions workflow commands
                                    (PR annotations); exit 1 on errors
+  claude-atlas lint [path] --rule <codes>
+                                   Filter to specific rule codes only.
+                                   Accepts comma-separated list, e.g.:
+                                   --rule dead-agent,missing-description
+                                   Valid codes: dead-agent, missing-agent-ref,
+                                   missing-description, delegation-cycle,
+                                   unused-tool-grant, duplicate-candidate
 
   claude-atlas duplicates [path]   Show only duplicate-candidate findings,
                                    ranked by similarity score
