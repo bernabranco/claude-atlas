@@ -489,6 +489,39 @@ describe("who-can", () => {
 });
 
 // ---------------------------------------------------------------------------
+// linter: unscoped-bash rule
+// ---------------------------------------------------------------------------
+
+describe("linter — unscoped-bash rule", () => {
+  const UNSCOPED = path.join(FIXTURES, "unscoped-bash");
+
+  it("fires when agent has Bash tool and no Bash(...) allow rule", async () => {
+    const graph = await scanClaudeDir(UNSCOPED);
+    const findings = lint(graph);
+    const f = findings.filter((x) => x.code === "unscoped-bash");
+    assert.ok(f.length >= 1, "expected at least one unscoped-bash finding");
+    assert.equal(f[0].level, "warning");
+    assert.ok(f[0].message.includes("runner"), "message should name the agent");
+  });
+
+  it("is suppressed when a scoped Bash allow rule exists", async () => {
+    const graph = await scanClaudeDir(UNSCOPED);
+    graph.permissions.allow = ["Bash(git *)"];
+    const findings = lint(graph);
+    const f = findings.filter((x) => x.code === "unscoped-bash");
+    assert.equal(f.length, 0, "unscoped-bash should not fire when Bash(git *) allow exists");
+  });
+
+  it("is suppressed when a wildcard Bash(*) allow rule exists", async () => {
+    const graph = await scanClaudeDir(UNSCOPED);
+    graph.permissions.allow = ["Bash(*)"];
+    const findings = lint(graph);
+    const f = findings.filter((x) => x.code === "unscoped-bash");
+    assert.equal(f.length, 0, "unscoped-bash should not fire when Bash(*) allow exists");
+  });
+});
+
+// ---------------------------------------------------------------------------
 // Utility
 // ---------------------------------------------------------------------------
 
