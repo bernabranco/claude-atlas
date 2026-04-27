@@ -36,10 +36,20 @@ const nodeColor = {
   command: "#f4a261",
   tool: "#84d9a8",
   mcp: "#c08cf8",
+  workflow: "#f472b6",
 };
 
-document.getElementById("counts").textContent =
-  `${graph.agents.length} agents · ${graph.commands.length} commands · ${graph.tools.length} tools · ${graph.mcpServers.length} mcp`;
+function countsText(g) {
+  const parts = [
+    `${g.agents.length} agents`,
+    `${g.commands.length} commands`,
+    `${g.tools.length} tools`,
+    `${g.mcpServers.length} mcp`,
+  ];
+  if ((g.workflows || []).length) parts.splice(1, 0, `${g.workflows.length} workflows`);
+  return parts.join(" · ");
+}
+document.getElementById("counts").textContent = countsText(graph);
 
 /* ===== Compute degree + lint-by-subject maps ===== */
 const degree = new Map();
@@ -81,10 +91,11 @@ function addNode(id, label, type, payload) {
   });
 }
 
-for (const a of graph.agents)     addNode(`agent:${a.slug}`,   a.name,       "agent",   a);
-for (const c of graph.commands)   addNode(`command:${c.slug}`, `/${c.slug}`, "command", c);
-for (const t of graph.tools)      addNode(`tool:${t.slug}`,    t.name,       "tool",    t);
-for (const m of graph.mcpServers) addNode(`mcp:${m.slug}`,     m.name,       "mcp",     m);
+for (const a of graph.agents)              addNode(`agent:${a.slug}`,    a.name,       "agent",    a);
+for (const c of graph.commands)            addNode(`command:${c.slug}`,  `/${c.slug}`, "command",  c);
+for (const w of (graph.workflows || []))   addNode(`workflow:${w.slug}`, w.name,       "workflow", w);
+for (const t of graph.tools)               addNode(`tool:${t.slug}`,     t.name,       "tool",     t);
+for (const m of graph.mcpServers)          addNode(`mcp:${m.slug}`,      m.name,       "mcp",      m);
 
 let edgeId = 0;
 for (const e of graph.edges) {
@@ -251,7 +262,7 @@ if (document.readyState === "complete") {
    Types with more than MAX_PER_ROW nodes wrap onto sub-rows so individual
    nodes stay readable and labels don't collide. */
 function tieredLayoutConfig() {
-  const tiers = ["agent", "command", "tool", "mcp"];
+  const tiers = ["workflow", "agent", "command", "tool", "mcp"];
   const MAX_PER_ROW = 10;
   const w = cy.width();
   const h = cy.height();
@@ -295,16 +306,17 @@ function tieredLayoutConfig() {
    Arrows between nodes of the same type radiate around a center
    instead of stacking on a shared axis. */
 function groupsLayoutConfig() {
-  const types = ["agent", "command", "tool", "mcp"];
+  const types = ["workflow", "agent", "command", "tool", "mcp"];
   const w = cy.width();
   const h = cy.height();
   const positions = {};
 
   const centers = {
-    agent:   { x: w * 0.28, y: h * 0.30 },
-    command: { x: w * 0.72, y: h * 0.30 },
-    tool:    { x: w * 0.28, y: h * 0.72 },
-    mcp:     { x: w * 0.72, y: h * 0.72 },
+    workflow: { x: w * 0.5, y: h * 0.15 },
+    agent:    { x: w * 0.28, y: h * 0.42 },
+    command:  { x: w * 0.72, y: h * 0.42 },
+    tool:     { x: w * 0.28, y: h * 0.78 },
+    mcp:      { x: w * 0.72, y: h * 0.78 },
   };
 
   const quadrant = Math.min(w, h) / 2;
@@ -457,6 +469,56 @@ function showNode(node) {
   wireClickThroughs(side.details);
 }
 
+function renderInvokesSection(payload) {
+  if (!payload.invokes?.length) return [];
+  return [
+    sectionTitle("Invokes", payload.invokes.length),
+    `<div class="space-y-1.5">` + invokeListHTML(payload) + `</div>`,
+  ];
+}
+
+function renderTypeDetails(type, payload) {
+  if (type === "agent") {
+    const renameBtn = `
+      <div class="mt-3 mb-1">
+        <button data-rename-name="${escape(payload.name)}"
+          class="rename-btn inline-flex items-center gap-1.5 px-2.5 py-1 text-[11.5px] rounded-md border border-border bg-bg-2 text-fg-2 hover:text-fg hover:border-border-2 transition-colors">
+          Rename
+        </button>
+      </div>`;
+    const toolsSection = payload.tools?.length
+      ? [sectionTitle("Tools", payload.tools.length),
+         `<div class="flex flex-wrap gap-1.5">` + payload.tools.map((t) => tagPill(t, `tool:${slug(t)}`)).join("") + `</div>`]
+      : [];
+    const invokedBy = graph.edges
+      .filter((e) => e.to === `agent:${payload.slug}` && e.kind === "invokes")
+      .map((e) => e.from);
+    const invokedBySection = invokedBy.length
+      ? [sectionTitle("Invoked by", invokedBy.length),
+         `<div class="space-y-1.5">` + invokedBy.map(cardHTML).join("") + `</div>`]
+      : [];
+    const rules = payload.applicableRules;
+    const permSection = rules && (rules.allowedBy.length || rules.deniedBy.length)
+      ? [sectionTitle("Permissions", rules.allowedBy.length + rules.deniedBy.length),
+         `<div class="flex flex-wrap gap-1.5">` +
+           rules.allowedBy.map((r) => rulePill(r, "allow")).join("") +
+           rules.deniedBy.map((r) => rulePill(r, "deny")).join("") +
+         `</div>`]
+      : [];
+    return [renameBtn, ...toolsSection, ...renderInvokesSection(payload), ...invokedBySection, ...permSection];
+  }
+  if (type === "tool") {
+    return [
+      sectionTitle("Granted to", (payload.agents || []).length),
+      `<div class="space-y-1.5">` + (payload.agents || []).map((s) => cardHTML(`agent:${s}`)).join("") + `</div>`,
+    ];
+  }
+  if (type === "command" || type === "workflow") {
+    return renderInvokesSection(payload);
+  }
+  return [];
+}
+
 function renderDetails(type, payload, id) {
   const parts = [];
   const color = nodeColor[type];
@@ -479,54 +541,7 @@ function renderDetails(type, payload, id) {
     parts.push(`<div class="space-y-1.5">${nodeLint.map(renderLintRow).join("")}</div>`);
   }
 
-  if (type === "agent") {
-    parts.push(`
-      <div class="mt-3 mb-1">
-        <button data-rename-name="${escape(payload.name)}"
-          class="rename-btn inline-flex items-center gap-1.5 px-2.5 py-1 text-[11.5px] rounded-md border border-border bg-bg-2 text-fg-2 hover:text-fg hover:border-border-2 transition-colors">
-          Rename
-        </button>
-      </div>`);
-
-    if (payload.tools?.length) {
-      parts.push(sectionTitle("Tools", payload.tools.length));
-      parts.push(`<div class="flex flex-wrap gap-1.5">` +
-        payload.tools.map((t) => tagPill(t, `tool:${slug(t)}`)).join("") + `</div>`);
-    }
-    if (payload.invokes?.length) {
-      parts.push(sectionTitle("Invokes", payload.invokes.length));
-      parts.push(`<div class="space-y-1.5">` + invokeListHTML(payload) + `</div>`);
-    }
-    const invokedBy = graph.edges
-      .filter((e) => e.to === `agent:${payload.slug}` && e.kind === "invokes")
-      .map((e) => e.from);
-    if (invokedBy.length) {
-      parts.push(sectionTitle("Invoked by", invokedBy.length));
-      parts.push(`<div class="space-y-1.5">` + invokedBy.map(cardHTML).join("") + `</div>`);
-    }
-    const rules = payload.applicableRules;
-    if (rules && (rules.allowedBy.length || rules.deniedBy.length)) {
-      const total = rules.allowedBy.length + rules.deniedBy.length;
-      parts.push(sectionTitle("Permissions", total));
-      parts.push(`<div class="flex flex-wrap gap-1.5">` +
-        rules.allowedBy.map((r) => rulePill(r, "allow")).join("") +
-        rules.deniedBy.map((r) => rulePill(r, "deny")).join("") +
-        `</div>`);
-    }
-  }
-
-  if (type === "tool") {
-    parts.push(sectionTitle("Granted to", (payload.agents || []).length));
-    parts.push(`<div class="space-y-1.5">` + (payload.agents || []).map((s) => cardHTML(`agent:${s}`)).join("") + `</div>`);
-  }
-
-  if (type === "command") {
-    if (payload.invokes?.length) {
-      parts.push(sectionTitle("Invokes", payload.invokes.length));
-      parts.push(`<div class="space-y-1.5">` + invokeListHTML(payload) + `</div>`);
-    }
-  }
-
+  parts.push(...renderTypeDetails(type, payload));
   return parts.join("");
 }
 
@@ -768,10 +783,11 @@ async function refreshGraph() {
   function addEl(id, label, type, payload) {
     newElements.push({ data: { id, label, type, payload, size: newSizeFor(id), lint: lintLevel(id) } });
   }
-  for (const a of graph.agents)     addEl(`agent:${a.slug}`,   a.name,       "agent",   a);
-  for (const c of graph.commands)   addEl(`command:${c.slug}`, `/${c.slug}`, "command", c);
-  for (const t of graph.tools)      addEl(`tool:${t.slug}`,    t.name,       "tool",    t);
-  for (const m of graph.mcpServers) addEl(`mcp:${m.slug}`,     m.name,       "mcp",     m);
+  for (const a of graph.agents)              addEl(`agent:${a.slug}`,    a.name,       "agent",    a);
+  for (const c of graph.commands)            addEl(`command:${c.slug}`,  `/${c.slug}`, "command",  c);
+  for (const w of (graph.workflows || []))   addEl(`workflow:${w.slug}`, w.name,       "workflow", w);
+  for (const t of graph.tools)               addEl(`tool:${t.slug}`,     t.name,       "tool",     t);
+  for (const m of graph.mcpServers)          addEl(`mcp:${m.slug}`,      m.name,       "mcp",      m);
 
   let eid = 0;
   for (const e of graph.edges) {
@@ -780,8 +796,7 @@ async function refreshGraph() {
 
   cy.add(newElements);
 
-  document.getElementById("counts").textContent =
-    `${graph.agents.length} agents · ${graph.commands.length} commands · ${graph.tools.length} tools · ${graph.mcpServers.length} mcp`;
+  document.getElementById("counts").textContent = countsText(graph);
 
   renderGlobalLint(findings);
   applyLayout(currentMode);

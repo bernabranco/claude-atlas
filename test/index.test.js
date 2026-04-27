@@ -121,6 +121,32 @@ describe("scanner", () => {
       /No \.claude directory/
     );
   });
+
+  it("returns workflows array", () => {
+    assert.ok(Array.isArray(graph.workflows), "graph.workflows should be an array");
+    assert.ok(graph.workflows.length >= 1, "expected at least one workflow in sample");
+  });
+
+  it("parses workflow frontmatter: name, description", () => {
+    const deploy = graph.workflows.find((w) => w.slug === "deploy");
+    assert.ok(deploy, "deploy workflow not found");
+    assert.equal(deploy.name, "deploy");
+    assert.equal(deploy.description, "Full deploy pipeline from plan to ship.");
+  });
+
+  it("detects workflow invoking agents via prose mention", () => {
+    const deploy = graph.workflows.find((w) => w.slug === "deploy");
+    assert.ok(deploy.invokes.includes("planner"), "deploy should invoke planner");
+    assert.ok(deploy.invokes.includes("writer"), "deploy should invoke writer");
+    assert.ok(deploy.invokes.includes("reviewer"), "deploy should invoke reviewer");
+  });
+
+  it("emits workflow→agent invokes edges", () => {
+    const wfEdges = graph.edges.filter((e) => e.from === "workflow:deploy" && e.kind === "invokes");
+    assert.ok(wfEdges.length >= 1, "expected invokes edges from workflow:deploy");
+    const targets = wfEdges.map((e) => e.to);
+    assert.ok(targets.includes("agent:planner"), "should have edge to agent:planner");
+  });
 });
 
 // ---------------------------------------------------------------------------
@@ -214,6 +240,27 @@ describe("linter", () => {
       const errors = findings.filter((f) => f.code === "missing-agent-ref");
       assert.equal(errors.length, 0, "sample has no bad refs");
     });
+
+    it("fires when a workflow references a nonexistent agent", async () => {
+      const graph = makeGraph({
+        workflows: [
+          {
+            slug: "broken",
+            name: "broken",
+            description: "References a ghost agent.",
+            invokes: ["ghost-agent"],
+            body: "",
+            lines: { name: 1 },
+          },
+        ],
+        edges: [{ from: "workflow:broken", to: "agent:ghost-agent", kind: "invokes" }],
+      });
+      const findings = lint(graph);
+      const errors = findings.filter(
+        (f) => f.code === "missing-agent-ref" && f.subject === "workflow:broken"
+      );
+      assert.ok(errors.length >= 1, "expected missing-agent-ref for workflow referencing nonexistent agent");
+    });
   });
 
   describe("missing-description rule", () => {
@@ -239,6 +286,24 @@ describe("linter", () => {
       const noDesc = findings.filter((f) => f.code === "missing-description");
       const subjects = noDesc.map((f) => f.subject);
       assert.ok(!subjects.includes("agent:planner"), "planner has description, should not fire");
+    });
+
+    it("fires for workflow with no description", () => {
+      const graph = makeGraph({
+        workflows: [
+          {
+            slug: "nodesc",
+            name: "nodesc",
+            description: "",
+            invokes: [],
+            body: "Does something.",
+            lines: { name: 1 },
+          },
+        ],
+      });
+      const findings = lint(graph);
+      const f = findings.filter((x) => x.code === "missing-description" && x.subject === "workflow:nodesc");
+      assert.ok(f.length >= 1, "expected missing-description for workflow with no description");
     });
   });
 
@@ -485,6 +550,39 @@ describe("who-can", () => {
         assert.ok(Array.isArray(a.via.tools));
       }
     });
+  });
+});
+
+// ---------------------------------------------------------------------------
+// linter: unscoped-bash rule
+// ---------------------------------------------------------------------------
+
+describe("linter — unscoped-bash rule", () => {
+  const UNSCOPED = path.join(FIXTURES, "unscoped-bash");
+
+  it("fires when agent has Bash tool and no Bash(...) allow rule", async () => {
+    const graph = await scanClaudeDir(UNSCOPED);
+    const findings = lint(graph);
+    const f = findings.filter((x) => x.code === "unscoped-bash");
+    assert.ok(f.length >= 1, "expected at least one unscoped-bash finding");
+    assert.equal(f[0].level, "warning");
+    assert.ok(f[0].message.includes("runner"), "message should name the agent");
+  });
+
+  it("is suppressed when a scoped Bash allow rule exists", async () => {
+    const graph = await scanClaudeDir(UNSCOPED);
+    graph.permissions.allow = ["Bash(git *)"];
+    const findings = lint(graph);
+    const f = findings.filter((x) => x.code === "unscoped-bash");
+    assert.equal(f.length, 0, "unscoped-bash should not fire when Bash(git *) allow exists");
+  });
+
+  it("is NOT suppressed when only a wildcard Bash(*) allow rule exists", async () => {
+    const graph = await scanClaudeDir(UNSCOPED);
+    graph.permissions.allow = ["Bash(*)"];
+    const findings = lint(graph);
+    const f = findings.filter((x) => x.code === "unscoped-bash");
+    assert.ok(f.length >= 1, "Bash(*) is an unrestricted grant and should not suppress unscoped-bash");
   });
 });
 
